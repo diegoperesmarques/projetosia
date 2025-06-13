@@ -8,12 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* Estilos personalizados */
         body {
-            background-color: #f0f2f5; /* Um cinza claro para o fundo */
+            background-color: #f0f2f5; 
         }
 
-        /* Animação para o card flutuar ao passar o mouse */
+
         .card-hover {
             transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         }
@@ -23,7 +22,7 @@
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
         }
 
-        /* Estilos para a visualização do Iframe */
+
         #iframe-view {
             position: fixed;
             top: 0;
@@ -37,33 +36,28 @@
         }
 
         #top-bar {
-            flex-shrink: 0; /* Impede que a barra diminua */
+            flex-shrink: 0; 
         }
 
         #content-iframe {
-            flex-grow: 1; /* Faz o iframe ocupar todo o espaço restante */
+            flex-grow: 1;
             border: none;
         }
     </style>
 </head>
 <body class="font-sans">
 
-    <!-- Container principal para a visualização dos cards -->
     <main id="card-view" class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-10">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Projetos feitos com IA</h1>
             <p class="text-gray-600 mt-2">Clique em um card para visualizar o projeto.</p>
         </header>
 
-        <!-- Grid onde os cards serão inseridos via JavaScript -->
         <div id="card-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            <!-- Os cards serão gerados e inseridos aqui -->
         </div>
     </main>
 
-    <!-- Container para a visualização do Iframe (inicialmente oculto) -->
     <div id="iframe-view">
-        <!-- Barra superior com o botão de voltar -->
         <div id="top-bar" class="bg-gray-800 text-white p-3 flex items-center shadow-lg">
             <button id="back-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
                 &larr; Voltar
@@ -74,22 +68,18 @@
         <iframe id="content-iframe" src="about:blank"></iframe>
     </div>
 
-    <!-- jQuery para facilitar a manipulação do DOM -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script>
         $(document).ready(function() {
-            // --- CONFIGURAÇÃO ---
-            // Adicione seus arquivos HTML aqui.
-            // Basta copiar a linha e alterar o título, descrição e o caminho do arquivo (file).
-            // IMPORTANTE: O caminho do arquivo (file) deve ser relativo a este arquivo HTML.
+
             const pages = [
                 { 
                     title: 'Editor Markdown', 
                     description: 'Editor de Markdown Online', 
                     file: './editor_markdown.html' // Exemplo: seu arquivo está na mesma pasta
                 },
-                { 
+                /*{ 
                     title: 'Calculadora', 
                     description: 'Uma calculadora desenvolvida com HTML, CSS e JS puros.', 
                     file: './projetos/calculadora/index.html' // Exemplo: seu arquivo está em uma subpasta
@@ -103,8 +93,8 @@
                     title: 'Meu Currículo', 
                     description: 'Versão online do meu currículo profissional.', 
                     file: 'caminho/para/seu/curriculo.html' 
-                },
-                // Adicione quantos projetos quiser!
+                },*/
+
             ];
 
             const cardContainer = $('#card-container');
@@ -114,9 +104,9 @@
             const backButton = $('#back-button');
             const iframeTitle = $('#iframe-title');
 
-            // Função para gerar os cards dinamicamente
+
             function renderCards() {
-                cardContainer.empty(); // Limpa o container antes de adicionar novos cards
+                cardContainer.empty(); 
                 pages.forEach(page => {
                     const cardHtml = `
                         <div class="card-hover bg-white rounded-xl shadow-md overflow-hidden cursor-pointer" data-file="${page.file}" data-title="${page.title}">
@@ -130,33 +120,29 @@
                 });
             }
 
-            // Evento de clique no card (usando delegação de eventos para performance)
+
             cardContainer.on('click', '.card-hover', function() {
                 const file = $(this).data('file');
                 const title = $(this).data('title');
 
-                // Define o título na barra superior e o src do iframe
                 iframeTitle.text(title);
                 contentIframe.attr('src', file);
 
-                // Animação de transição
+
                 cardView.fadeOut(300, function() {
                     iframeView.css('display', 'flex').hide().fadeIn(300);
                 });
             });
 
-            // Evento de clique no botão "Voltar"
+
             backButton.on('click', function() {
-                // Animação de transição
                 iframeView.fadeOut(300, function() {
                     cardView.fadeIn(300);
-                    // Limpa o iframe para interromper a execução de scripts e economizar recursos
                     contentIframe.attr('src', 'about:blank');
                     iframeTitle.text('');
                 });
             });
 
-            // Chama a função para renderizar os cards quando a página carregar
             renderCards();
         });
     </script>
