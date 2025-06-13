@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Código</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dee2e6;
+            --textarea-bg: #ffffff;
+            --header-bg: #f8f9fa;
+            --btn-primary: #0d6efd;
+            --btn-success: #198754;
+            --btn-danger: #dc3545;
+            --added-bg: #d4edda;
+            --added-border: #c3e6cb;
+            --removed-bg: #f8d7da;
+            --removed-border: #f5c6cb;
+            --modified-bg: #fff3cd;
+            --modified-border: #ffeaa7;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --border-color: #495057;
+            --textarea-bg: #2d2d2d;
+            --header-bg: #343a40;
+            --btn-primary: #0d6efd;
+            --btn-success: #198754;
+            --btn-danger: #dc3545;
+            --added-bg: #1e4d2b;
+            --added-border: #2d5a3d;
+            --removed-bg: #4d1e1e;
+            --removed-border: #5a2d2d;
+            --modified-bg: #4d4d1e;
+            --modified-border: #5a5a2d;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .header {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--border-color);
+        }
+
+        .code-container {
+            height: 500px;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .code-textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            background-color: var(--textarea-bg);
+            color: var(--text-color);
+            resize: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .code-display {
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            background-color: var(--textarea-bg);
+            color: var(--text-color);
+            white-space: pre;
+            overflow: auto;
+            border: none;
+            outline: none;
+        }
+
+        .line-added {
+            background-color: var(--added-bg) !important;
+            border-left: 3px solid var(--added-border);
+            padding-left: 0.5rem;
+            margin-left: -0.5rem;
+        }
+
+        .line-removed {
+            background-color: var(--removed-bg) !important;
+            border-left: 3px solid var(--removed-border);
+            padding-left: 0.5rem;
+            margin-left: -0.5rem;
+        }
+
+        .line-modified {
+            background-color: var(--modified-bg) !important;
+            border-left: 3px solid var(--modified-border);
+            padding-left: 0.5rem;
+            margin-left: -0.5rem;
+        }
+
+        .word-added {
+            background-color: #22c55e !important;
+            color: white !important;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .word-removed {
+            background-color: #ef4444 !important;
+            color: white !important;
+            padding: 0 2px;
+            border-radius: 2px;
+            text-decoration: line-through;
+        }
+
+        .word-modified {
+            background-color: #f59e0b !important;
+            color: white !important;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .btn-group .btn {
+            margin-right: 0.5rem;
+        }
+
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+
+        .comparison-stats {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--header-bg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stats-item {
+            display: inline-block;
+            margin-right: 2rem;
+            font-weight: 500;
+        }
+
+        .stats-added { color: #22c55e; }
+        .stats-removed { color: #ef4444; }
+        .stats-modified { color: #f59e0b; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-color);
+        }
+
+        .column-header {
+            background-color: var(--header-bg);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Comparador de Código
+                    </h1>
+                </div>
+                <div class="col-auto">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                        <span class="ms-2" id="themeText">Tema Escuro</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-3">
+            <div class="col">
+                <div class="btn-group">
+                    <button class="btn btn-outline-danger" id="clearBtn">
+                        <i class="fas fa-trash me-2"></i>
+                        Limpar
+                    </button>
+                    <button class="btn btn-outline-primary" id="compareBtn">
+                        <i class="fas fa-search me-2"></i>
+                        Comparar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="code-container">
+                    <div class="column-header">
+                        <i class="fas fa-file-code me-2"></i>
+                        Código Original
+                    </div>
+                    <textarea class="code-textarea" id="code1" placeholder="Cole o código original aqui..."></textarea>
+                    <div class="code-display d-none" id="display1"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="code-container">
+                    <div class="column-header">
+                        <i class="fas fa-file-code me-2"></i>
+                        Código Modificado
+                    </div>
+                    <textarea class="code-textarea" id="code2" placeholder="Cole o código modificado aqui..."></textarea>
+                    <div class="code-display d-none" id="display2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison-stats d-none" id="statsContainer">
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="stats-item stats-added">
+                    <i class="fas fa-plus me-1"></i>
+                    <span id="addedCount">0</span> Adicionadas
+                </div>
+                <div class="stats-item stats-removed">
+                    <i class="fas fa-minus me-1"></i>
+                    <span id="removedCount">0</span> Removidas
+                </div>
+                <div class="stats-item stats-modified">
+                    <i class="fas fa-edit me-1"></i>
+                    <span id="modifiedCount">0</span> Modificadas
+                </div>
+                <div class="stats-item ms-auto">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong id="totalChanges">0</strong> alterações encontradas
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let isComparing = false;
+
+            // Theme toggle functionality
+            $('#themeToggle').click(function() {
+                const currentTheme = $('html').attr('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                $('html').attr('data-theme', newTheme);
+                
+                if (newTheme === 'dark') {
+                    $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
+                    $('#themeText').text('Tema Claro');
+                } else {
+                    $('#themeIcon').removeClass('fa-sun').addClass('fa-moon');
+                    $('#themeText').text('Tema Escuro');
+                }
+                
+                // Save theme preference
+                localStorage.setItem('theme', newTheme);
+            });
+
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                $('html').attr('data-theme', 'dark');
+                $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
+                $('#themeText').text('Tema Claro');
+            }
+
+            // Clear functionality
+            $('#clearBtn').click(function() {
+                $('#code1, #code2').val('').prop('disabled', false).removeClass('d-none');
+                $('#display1, #display2').addClass('d-none');
+                $('#statsContainer').addClass('d-none');
+                isComparing = false;
+                
+                // Reset button states
+                $('#compareBtn').prop('disabled', false);
+            });
+
+            // Compare functionality
+            $('#compareBtn').click(function() {
+                const code1 = $('#code1').val().trim();
+                const code2 = $('#code2').val().trim();
+
+                if (!code1 || !code2) {
+                    alert('Por favor, cole o código em ambas as colunas antes de comparar.');
+                    return;
+                }
+
+                compareCode(code1, code2);
+            });
+
+            function compareCode(code1, code2) {
+                isComparing = true;
+                
+                // Disable textareas and show loading
+                $('#code1, #code2').prop('disabled', true);
+                $('#compareBtn').prop('disabled', true);
+
+                // Split code into lines
+                const lines1 = code1.split('\n');
+                const lines2 = code2.split('\n');
+
+                // Perform comparison
+                const result = diffLines(lines1, lines2);
+                
+                // Display results
+                displayComparison(result.left, result.right, result.stats);
+            }
+
+            function diffLines(lines1, lines2) {
+                const maxLength = Math.max(lines1.length, lines2.length);
+                const leftResult = [];
+                const rightResult = [];
+                const stats = { added: 0, removed: 0, modified: 0 };
+
+                for (let i = 0; i < maxLength; i++) {
+                    const line1 = lines1[i] || '';
+                    const line2 = lines2[i] || '';
+
+                    if (line1 === line2) {
+                        // Lines are identical
+                        leftResult.push({ text: line1, type: 'equal' });
+                        rightResult.push({ text: line2, type: 'equal' });
+                    } else if (!line1 && line2) {
+                        // Line added
+                        leftResult.push({ text: '', type: 'empty' });
+                        rightResult.push({ text: line2, type: 'added' });
+                        stats.added++;
+                    } else if (line1 && !line2) {
+                        // Line removed
+                        leftResult.push({ text: line1, type: 'removed' });
+                        rightResult.push({ text: '', type: 'empty' });
+                        stats.removed++;
+                    } else {
+                        // Line modified - perform word-level diff
+                        const wordDiff = diffWords(line1, line2);
+                        leftResult.push({ text: wordDiff.left, type: 'modified', isHtml: true });
+                        rightResult.push({ text: wordDiff.right, type: 'modified', isHtml: true });
+                        stats.modified++;
+                    }
+                }
+
+                return { left: leftResult, right: rightResult, stats: stats };
+            }
+
+            function diffWords(str1, str2) {
+                const words1 = str1.split(/(\s+)/);
+                const words2 = str2.split(/(\s+)/);
+                const maxLength = Math.max(words1.length, words2.length);
+                
+                let leftHtml = '';
+                let rightHtml = '';
+
+                for (let i = 0; i < maxLength; i++) {
+                    const word1 = words1[i] || '';
+                    const word2 = words2[i] || '';
+
+                    if (word1 === word2) {
+                        leftHtml += escapeHtml(word1);
+                        rightHtml += escapeHtml(word2);
+                    } else if (!word1 && word2) {
+                        leftHtml += '';
+                        rightHtml += `<span class="word-added">${escapeHtml(word2)}</span>`;
+                    } else if (word1 && !word2) {
+                        leftHtml += `<span class="word-removed">${escapeHtml(word1)}</span>`;
+                        rightHtml += '';
+                    } else {
+                        leftHtml += `<span class="word-modified">${escapeHtml(word1)}</span>`;
+                        rightHtml += `<span class="word-modified">${escapeHtml(word2)}</span>`;
+                    }
+                }
+
+                return { left: leftHtml, right: rightHtml };
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function displayComparison(leftLines, rightLines, stats) {
+                // Hide textareas and show display divs
+                $('#code1, #code2').addClass('d-none');
+                $('#display1, #display2').removeClass('d-none');
+
+                // Generate HTML for left side
+                let leftHtml = '';
+                leftLines.forEach((line, index) => {
+                    const lineClass = getLineClass(line.type);
+                    const content = line.isHtml ? line.text : escapeHtml(line.text);
+                    leftHtml += `<div class="${lineClass}">${content || '&nbsp;'}</div>`;
+                });
+
+                // Generate HTML for right side
+                let rightHtml = '';
+                rightLines.forEach((line, index) => {
+                    const lineClass = getLineClass(line.type);
+                    const content = line.isHtml ? line.text : escapeHtml(line.text);
+                    rightHtml += `<div class="${lineClass}">${content || '&nbsp;'}</div>`;
+                });
+
+                // Display results
+                $('#display1').html(leftHtml);
+                $('#display2').html(rightHtml);
+
+                // Update statistics
+                $('#addedCount').text(stats.added);
+                $('#removedCount').text(stats.removed);
+                $('#modifiedCount').text(stats.modified);
+                $('#totalChanges').text(stats.added + stats.removed + stats.modified);
+                $('#statsContainer').removeClass('d-none');
+
+                // Re-enable compare button
+                $('#compareBtn').prop('disabled', false);
+            }
+
+            function getLineClass(type) {
+                switch (type) {
+                    case 'added': return 'line-added';
+                    case 'removed': return 'line-removed';
+                    case 'modified': return 'line-modified';
+                    case 'empty': return '';
+                    default: return '';
+                }
+            }
+
+            // Prevent editing when comparing
+            $('#code1, #code2').on('input', function() {
+                if (isComparing) {
+                    $(this).prop('disabled', true);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
