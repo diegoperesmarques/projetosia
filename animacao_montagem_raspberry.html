@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animação de Montagem do Raspberry Pi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilos para a animação dos componentes do SVG */
+        .component {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .component.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 w-full max-w-4xl text-center">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Montagem de um Raspberry Pi 4</h1>
+        <p class="text-gray-600 mb-6">Veja os componentes principais sendo adicionados à placa.</p>
+
+        <!-- Container da Animação e Descrição -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            
+            <!-- SVG do Raspberry Pi -->
+            <div id="svg-container" class="relative w-full h-auto">
+                <!-- 
+                    SVG de um Raspberry Pi 4.
+                    Cada grupo de componentes animáveis tem um id único e a classe 'component'.
+                    A placa (PCB) é visível por padrão.
+                -->
+                <svg viewBox="0 0 1024 683" xmlns="http://www.w3.org/2000/svg">
+                  <g id="pcb" fill="#00583E"> <!-- Placa de Circuito Impresso (PCB) - Base -->
+                    <path d="M965.4,682.2H58.6c-32.1,0-58.1-26-58.1-58.1V58.1C0.5,26,26.5,0,58.6,0h906.8c32.1,0,58.1,26,58.1,58.1v566.1 C1023.5,656.2,997.5,682.2,965.4,682.2z"/>
+                  </g>
+                  <g id="cpu" class="component"> <!-- Processador (SoC) -->
+                    <rect x="430" y="270" width="160" height="160" fill="#c0c0c0"/>
+                    <text x="510" y="355" font-family="Arial, sans-serif" font-size="24" fill="#555" text-anchor="middle">BCM2711</text>
+                  </g>
+                  <g id="ram" class="component"> <!-- Memória RAM -->
+                     <rect x="445" y="190" width="130" height="60" fill="#333"/>
+                  </g>
+                   <g id="usb-c" class="component"> <!-- Porta USB-C (Energia) -->
+                    <rect x="60" y="100" width="70" height="40" rx="5" fill="#7f8c8d"/>
+                    <rect x="75" y="112" width="40" height="16" fill="#34495e"/>
+                  </g>
+                  <g id="hdmi" class="component"> <!-- Portas Micro HDMI -->
+                    <rect x="150" y="100" width="55" height="40" rx="5" fill="#7f8c8d"/>
+                    <rect x="162" y="115" width="30" height="10" fill="#34495e"/>
+                    <rect x="225" y="100" width="55" height="40" rx="5" fill="#7f8c8d"/>
+                    <rect x="237" y="115" width="30" height="10" fill="#34495e"/>
+                  </g>
+                   <g id="audio-jack" class="component"> <!-- Jack de Áudio -->
+                    <rect x="300" y="100" width="40" height="40" rx="5" fill="#f1c40f"/>
+                    <circle cx="320" cy="120" r="8" fill="#34495e"/>
+                  </g>
+                  <g id="usb-ports" class="component"> <!-- Portas USB -->
+                    <rect x="800" y="100" width="160" height="70" rx="5" fill="#7f8c8d"/>
+                    <rect x="810" y="115" width="60" height="40" fill="#3498db"/>
+                    <rect x="890" y="115" width="60" height="40" fill="#3498db"/>
+                     <rect x="800" y="200" width="160" height="70" rx="5" fill="#7f8c8d"/>
+                    <rect x="810" y="215" width="60" height="40" fill="#2c3e50"/>
+                    <rect x="890" y="215" width="60" height="40" fill="#2c3e50"/>
+                  </g>
+                  <g id="ethernet-port" class="component"> <!-- Porta Ethernet -->
+                     <rect x="800" y="300" width="160" height="100" rx="5" fill="#bdc3c7"/>
+                     <rect x="815" y="320" width="130" height="60" fill="#2c3e50"/>
+                  </g>
+                  <g id="gpio" class="component"> <!-- Pinos GPIO -->
+                    <rect x="400" y="500" width="560" height="120" fill="#444"/>
+                     <g fill="#f1c40f">
+                        <script>
+                            // Gerar os pinos GPIO dinamicamente
+                            const gpioContainer = document.currentScript.parentElement;
+                            for (let i = 0; i < 20; i++) {
+                                let pin = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                pin.setAttribute("x", 410 + i * 27);
+                                pin.setAttribute("y", 510);
+                                pin.setAttribute("width", "10");
+                                pin.setAttribute("height", "40");
+                                gpioContainer.appendChild(pin);
+                            }
+                            for (let i = 0; i < 20; i++) {
+                                let pin = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                pin.setAttribute("x", 410 + i * 27);
+                                pin.setAttribute("y", 570);
+                                pin.setAttribute("width", "10");
+                                pin.setAttribute("height", "40");
+                                gpioContainer.appendChild(pin);
+                            }
+                        </script>
+                    </g>
+                  </g>
+                </svg>
+            </div>
+
+            <!-- Painel de Informações -->
+            <div id="info-panel" class="bg-gray-50 border border-gray-200 rounded-lg p-6 h-full flex flex-col justify-center">
+                 <h2 id="component-title" class="text-xl font-bold text-teal-600 mb-2 transition-opacity duration-500">Iniciando montagem...</h2>
+                 <p id="component-description" class="text-gray-700 transition-opacity duration-500">A placa de circuito impresso (PCB) é a base onde todos os componentes são conectados.</p>
+            </div>
+        </div>
+
+        <!-- Botão de Controle -->
+        <div class="mt-8">
+            <button id="replay-button" class="bg-teal-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                Reiniciar Animação
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lista de componentes a serem animados em ordem
+            const components = [
+                { id: 'cpu', name: 'Processador (SoC)', description: 'O cérebro do Pi. O Broadcom BCM2711 é um System on a Chip (SoC) que integra CPU, GPU e outras funções.' },
+                { id: 'ram', name: 'Memória RAM', description: 'Memória de acesso aleatório (LPDDR4 SDRAM) usada para armazenar dados de programas em execução.' },
+                { id: 'usb-c', name: 'Porta USB-C', description: 'Usada para fornecer energia (5V/3A) para a placa.' },
+                { id: 'hdmi', name: 'Portas Micro-HDMI', description: 'Duas portas micro-HDMI que suportam até duas telas com resolução 4K.' },
+                { id: 'audio-jack', name: 'Jack de Áudio e Vídeo', description: 'Uma saída de 4 polos para áudio estéreo e vídeo composto.' },
+                { id: 'usb-ports', name: 'Portas USB', description: 'Duas portas USB 3.0 (azuis) para transferências rápidas e duas portas USB 2.0 (pretas) para periféricos.' },
+                { id: 'ethernet-port', name: 'Porta Gigabit Ethernet', description: 'Para conexão de rede com fio de alta velocidade, movida para fora do barramento USB para melhor desempenho.' },
+                { id: 'gpio', name: 'Pinos GPIO', description: 'Os 40 pinos de Entrada/Saída de Propósito Geral (GPIO) para conectar e controlar componentes eletrônicos.' }
+            ];
+
+            const infoTitle = document.getElementById('component-title');
+            const infoDescription = document.getElementById('component-description');
+            const replayButton = document.getElementById('replay-button');
+
+            let animationTimeout;
+
+            // Função para animar a montagem
+            async function runAssemblyAnimation() {
+                // Desabilitar o botão enquanto a animação ocorre
+                replayButton.disabled = true;
+
+                // Loop através de cada componente com um atraso
+                for (let i = 0; i < components.length; i++) {
+                    const component = components[i];
+                    
+                    // Espera 1.5 segundos antes de mostrar o próximo componente
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    const element = document.getElementById(component.id);
+                    const title = component.name;
+                    const description = component.description;
+
+                    // Atualiza o painel de informações
+                    infoTitle.style.opacity = 0;
+                    infoDescription.style.opacity = 0;
+
+                    await new Promise(resolve => setTimeout(() => {
+                        infoTitle.textContent = title;
+                        infoDescription.textContent = description;
+                        infoTitle.style.opacity = 1;
+                        infoDescription.style.opacity = 1;
+                        resolve();
+                    }, 500));
+                    
+                    // Torna o componente SVG visível
+                    if (element) {
+                        element.classList.add('visible');
+                    }
+                }
+                
+                // Animação concluída
+                await new Promise(resolve => setTimeout(() => {
+                    infoTitle.style.opacity = 0;
+                    infoDescription.style.opacity = 0;
+                    
+                    setTimeout(() => {
+                         infoTitle.textContent = 'Montagem Concluída!';
+                         infoDescription.textContent = 'O Raspberry Pi 4 está pronto para uso.';
+                         infoTitle.style.opacity = 1;
+                         infoDescription.style.opacity = 1;
+                    }, 500);
+
+                    // Reabilitar o botão
+                    replayButton.disabled = false;
+                    resolve();
+                }, 1500));
+            }
+            
+            // Função para reiniciar a animação
+            function resetAnimation() {
+                // Cancela qualquer timeout de animação pendente
+                clearTimeout(animationTimeout);
+
+                // Esconde todos os componentes
+                components.forEach(c => {
+                    const element = document.getElementById(c.id);
+                    if (element) {
+                        element.classList.remove('visible');
+                    }
+                });
+
+                // Reseta o painel de informações
+                infoTitle.textContent = 'Iniciando montagem...';
+                infoDescription.textContent = 'A placa de circuito impresso (PCB) é a base onde todos os componentes são conectados.';
+                
+                // Inicia a animação novamente
+                animationTimeout = setTimeout(runAssemblyAnimation, 500);
+            }
+
+            // Event listener para o botão de reiniciar
+            replayButton.addEventListener('click', resetAnimation);
+
+            // Inicia a animação quando a página carrega
+            runAssemblyAnimation();
+        });
+    </script>
+
+</body>
+</html>
