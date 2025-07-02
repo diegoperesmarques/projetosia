@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Evolução do Armazenamento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos personalizados para complementar o Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e7eb;
+            overflow-x: hidden; /* Previne a barra de rolagem horizontal no corpo */
+        }
+
+        /* Fundo animado com partículas */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        /* Efeito de brilho no título principal */
+        .glow-text {
+            text-shadow:
+                0 0 7px rgba(79, 70, 229, 0.8),
+                0 0 10px rgba(79, 70, 229, 0.6),
+                0 0 21px rgba(79, 70, 229, 0.4),
+                0 0 42px rgba(79, 70, 229, 0.2);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow:
+                    0 0 5px rgba(79, 70, 229, 0.6),
+                    0 0 10px rgba(79, 70, 229, 0.4),
+                    0 0 15px rgba(79, 70, 229, 0.3),
+                    0 0 20px rgba(79, 70, 229, 0.2);
+            }
+            to {
+                text-shadow:
+                    0 0 10px rgba(79, 70, 229, 1),
+                    0 0 20px rgba(79, 70, 229, 0.8),
+                    0 0 30px rgba(79, 70, 229, 0.6),
+                    0 0 40px rgba(79, 70, 229, 0.4);
+            }
+        }
+
+        /* Container da linha do tempo */
+        .timeline-container {
+            display: flex;
+            width: max-content;
+            padding: 2rem 5vw;
+            will-change: transform;
+        }
+
+        .timeline-wrapper {
+             overflow-x: auto;
+             scrollbar-width: thin; /* Firefox */
+             scrollbar-color: #4f46e5 #1f2937; /* Firefox */
+        }
+        
+        .timeline-wrapper::-webkit-scrollbar { height: 8px; }
+        .timeline-wrapper::-webkit-scrollbar-track { background: #1f2937; border-radius: 10px; }
+        .timeline-wrapper::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 10px; border: 2px solid #1f2937; }
+
+        /* Cards da linha do tempo */
+        .timeline-card {
+            flex: 0 0 340px;
+            opacity: 0;
+            transform: perspective(1000px) rotateY(-20deg) scale(0.9);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            will-change: opacity, transform;
+            transform-origin: left center;
+        }
+
+        .timeline-card.visible {
+            opacity: 1;
+            transform: perspective(1000px) rotateY(0deg) scale(1);
+        }
+        
+        /* Animação de hover nos elementos do card */
+        .timeline-card:hover {
+            transform: scale(1.03);
+            border-color: rgba(99, 102, 241, 0.8);
+            box-shadow: 0 0 25px rgba(79, 70, 229, 0.4);
+        }
+        .timeline-card:hover .card-icon-container svg {
+             transform: scale(1.1) rotate(5deg);
+             filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.7));
+        }
+
+        .card-icon-container svg {
+            transition: all 0.4s ease-in-out;
+        }
+        
+        /* Efeito Typewriter */
+        .typewriter-text {
+            font-family: 'Roboto Mono', monospace;
+            overflow: hidden; 
+            white-space: pre-wrap;
+            display: inline-block;
+        }
+        .typewriter-text.typing::after {
+            content: '|';
+            animation: blink-caret .75s step-end infinite;
+            color: #a5b4fc;
+        }
+
+        @keyframes blink-caret {
+            from, to { opacity: 0 }
+            50% { opacity: 1 }
+        }
+
+        /* Linha conectora */
+        .timeline-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -6rem; /* Distância entre os cards */
+            transform: translateY(-50%);
+            width: 6rem; /* Comprimento da linha */
+            height: 2px;
+            background: linear-gradient(to right, #4f46e5, rgba(79, 70, 229, 0));
+        }
+        
+        .timeline-container > :last-child::after { display: none; }
+        
+        /* Adaptação para telas menores */
+        @media (max-width: 768px) {
+            .timeline-wrapper { overflow-x: hidden; }
+            .timeline-container { flex-direction: column; width: 100%; align-items: center; padding: 2rem 1rem; }
+            .timeline-card {
+                flex: 0 0 auto;
+                width: 90%;
+                margin-bottom: 6rem; /* Espaço entre os cards na vertical */
+                transform-origin: center center; /* Muda a origem da animação para mobile */
+            }
+             .timeline-card::after {
+                top: 100%;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: 2px;
+                height: 6rem;
+                background: linear-gradient(to bottom, #4f46e5, rgba(79, 70, 229, 0));
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <!-- Fundo de Partículas -->
+    <div id="particles-js"></div>
+
+    <div class="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white glow-text mb-4">
+            A Evolução do Armazenamento
+        </h1>
+        <p class="text-lg md:text-xl text-indigo-300 max-w-3xl">
+            Uma jornada interativa através da história da tecnologia de dados, desde os cartões perfurados até a nuvem.
+        </p>
+        <div class="mt-12 animate-bounce">
+            <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+             <span class="text-indigo-400 block mt-2 text-sm md:hidden">Role para baixo</span>
+             <span class="text-indigo-400 block mt-2 text-sm hidden md:block">Role para o lado</span>
+        </div>
+    </div>
+
+    <!-- Container da Linha do Tempo -->
+    <div class="timeline-wrapper relative z-10 w-full pb-16">
+        <div class="timeline-container mx-auto">
+            <!-- Os cards da linha do tempo serão inseridos aqui pelo JavaScript -->
+        </div>
+    </div>
+
+    <footer class="relative z-10 text-center p-8 text-gray-500">
+        <p>A história continua... Qual será o próximo passo?</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // --- Dados da Linha do Tempo ---
+        const timelineData = [
+             {
+                year: '1890',
+                title: 'Cartão Perfurado',
+                capacity: '~80 Bytes',
+                description: 'Usado no censo dos EUA, armazenava dados como furos em papel cartão. Uma pessoa era um cartão.',
+                icon: 'M4 4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2H4zm1 4h2v2H5V8zm4 0h2v2H9V8zm4 0h2v2h-2V8zm-4 4h2v2H9v-2zm-4 0h2v2H5v-2zm8 0h2v2h-2v-2z'
+            },
+            {
+                year: '1951',
+                title: 'Fita Magnética',
+                capacity: '~2 MB',
+                description: 'Revolucionou o armazenamento em massa para computadores mainframe. Ainda hoje é usada para arquivamento de dados.',
+                icon: 'M19 12H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0a2 2 0 00-2-2h- realizzazione2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v3H5a2 2 0 00-2 2'
+            },
+            {
+                year: '1956',
+                title: 'Disco Rígido (HDD)',
+                capacity: '3.75 MB',
+                description: 'O IBM 350 era do tamanho de dois refrigeradores e pesava uma tonelada. Armazenava dados em discos magnéticos giratórios.',
+                icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5zm5 2a3 3 0 100 6 3 3 0 000-6zm0 1a2 2 0 110 4 2 2 0 010-4z'
+            },
+            {
+                year: '1971',
+                title: 'Disquete (Floppy Disk)',
+                capacity: '1.44 MB',
+                description: 'Tornou os dados portáteis pela primeira vez. O nome "floppy" (flexível) vem do disco magnético interno.',
+                icon: 'M17 17h-1a1 1 0 01-1-1v-4a1 1 0 011-1h1a1 1 0 011 1v4a1 1 0 01-1 1zm-4-11V3h-4v3H6v12h12V6h-3zM9 5h6v1H9V5z'
+            },
+            {
+                year: '1982',
+                title: 'CD-ROM',
+                capacity: '700 MB',
+                description: 'Armazenamento óptico que popularizou softwares e jogos multimídia. Os dados são gravados em sulcos microscópicos.',
+                icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2zM12 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z'
+            },
+            {
+                year: '2000',
+                title: 'Pen Drive (USB)',
+                capacity: '8 MB a 2 TB+',
+                description: 'A memória flash em um formato compacto revolucionou a portabilidade de dados pessoais e profissionais.',
+                icon: 'M18 8V4a2 2 0 00-2-2H8a2 2 0 00-2 2v4H4v10a2 2 0 002 2h12a2 2 0 002-2V8h-2zM8 4h8v4H8V4zm11 15a1 1 0 01-1 1H6a1 1 0 01-1-1v-8h14v8z'
+            },
+            {
+                year: 'Anos 2000',
+                title: 'SSD (Solid State Drive)',
+                capacity: '128 GB a 100 TB+',
+                description: 'Sem partes móveis, oferece velocidades de leitura e escrita drasticamente mais rápidas que os HDDs.',
+                icon: 'M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm4 2h2v2H7V7zm4 0h2v2h-2V7zm4 0h2v2h-2V7zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2z'
+            },
+            {
+                year: '2006',
+                title: 'Armazenamento em Nuvem',
+                capacity: 'Ilimitada',
+                description: '"A Nuvem" é uma rede de servidores poderosos que armazenam dados, acessíveis de qualquer lugar do mundo via internet.',
+                icon: 'M17.63 17.63A9 9 0 015.01 7.23a7 7 0 0111.7-6.06 7.5 7.5 0 014.24 12.28 9 9 0 01-3.32 4.18z'
+            }
+        ];
+
+        // --- Configuração das Partículas ---
+        particlesJS('particles-js', { particles: { number: { value: 60, density: { enable: true, value_area: 800 } }, color: { value: "#4f46e5" }, shape: { type: "circle" }, opacity: { value: 0.5, random: true, anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false } }, size: { value: 3, random: true }, line_linked: { enable: true, distance: 150, color: "#4f46e5", opacity: 0.4, width: 1 }, move: { enable: true, speed: 2, direction: "none", random: false, straight: false, out_mode: "out", bounce: false } }, interactivity: { detect_on: "canvas", events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true }, modes: { repulse: { distance: 150, duration: 0.4 }, push: { particles_nb: 4 } } }, retina_detect: true });
+
+        // --- Lógica da Linha do Tempo ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const timelineContainer = document.querySelector('.timeline-container');
+            const timelineWrapper = document.querySelector('.timeline-wrapper');
+
+            // Preenche a linha do tempo com os dados
+            timelineData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'timeline-card relative rounded-lg p-6 m-4 shadow-2xl flex flex-col items-center text-center';
+                
+                card.innerHTML = `
+                    <div class="absolute -top-3 -left-3 bg-indigo-600 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg">${item.year}</div>
+                    <div class="card-icon-container mb-4 text-indigo-400">
+                        <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="${item.icon}"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">${item.title}</h3>
+                    <p class="text-sm font-bold text-indigo-300 mb-4 h-6">${item.capacity}</p>
+                    <p class="typewriter-text text-gray-400 text-sm h-24" data-text="${item.description}"></p>
+                `;
+                timelineContainer.appendChild(card);
+            });
+            
+            // Função para o efeito Typewriter
+            function typeWriter(element, text, i = 0) {
+                if (!element) return;
+                element.classList.add('typing');
+                if (i < text.length) {
+                    element.innerHTML = text.substring(0, i + 1) + '<span aria-hidden="true"></span>';
+                    setTimeout(() => typeWriter(element, text, i + 1), 30);
+                } else {
+                     setTimeout(() => element.classList.remove('typing'), 750);
+                }
+            }
+
+            const cards = document.querySelectorAll('.timeline-card');
+
+            // Usa IntersectionObserver para animar os cards e o texto
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        
+                        // Inicia o typewriter após a animação do card
+                        const textElement = entry.target.querySelector('.typewriter-text');
+                        if (textElement && !textElement.dataset.typed) {
+                             setTimeout(() => {
+                                textElement.dataset.typed = "true"; // Evita re-digitar
+                                typeWriter(textElement, textElement.dataset.text);
+                            }, 800); // Atraso para iniciar após a transição do card
+                        }
+                    }
+                });
+            }, {
+                root: null, 
+                threshold: window.innerWidth <= 768 ? 0.2 : 0.5, // Threshold diferente para mobile/desktop
+                rootMargin: window.innerWidth <= 768 ? '-100px' : '0px'
+            });
+
+            cards.forEach(card => {
+                observer.observe(card);
+            });
+
+            // Rolagem horizontal suave com a roda do mouse
+            if(window.innerWidth > 768) {
+                timelineWrapper.addEventListener('wheel', (evt) => {
+                    if (Math.abs(evt.deltaY) > Math.abs(evt.deltaX)) {
+                        evt.preventDefault();
+                        timelineWrapper.scrollLeft += evt.deltaY;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
