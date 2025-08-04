@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Treino de Cálculo Mental</title>
+  <style>
+    :root{
+      --bg:#0f1221;
+      --panel:#171a2c;
+      --panel-2:#202544;
+      --acc:#6ee7f0;
+      --acc-2:#a78bfa;
+      --text:#e8ecff;
+      --muted:#aab3d9;
+      --good:#34d399;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1d2140 0%, rgba(29,33,64,0) 60%),
+        radial-gradient(900px 500px at 110% 10%, #1a2a52 0%, rgba(26,42,82,0) 55%),
+        linear-gradient(180deg, #0c0f1d 0%, #0e1020 100%);
+      overflow-x:hidden;
+    }
+    header{
+      padding:18px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      user-select:none;
+    }
+    .logo{
+      width:40px; height:40px; border-radius:12px;
+      background: conic-gradient(from 210deg, var(--acc), var(--acc-2), #5eead4, var(--acc));
+      box-shadow: 0 0 20px rgba(110,231,240,.45), inset 0 0 20px rgba(255,255,255,.15);
+    }
+    .title{
+      font-weight:800; letter-spacing:.2px;
+      font-size:1.15rem;
+    }
+    .container{
+      max-width:1000px; margin:0 auto; padding:10px 16px 40px;
+    }
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+    .grid{
+      display:grid; gap:18px;
+    }
+    .config{
+      padding:22px;
+      display:grid; gap:16px;
+    }
+    .config h2{
+      margin:0 0 8px; font-size:1.2rem;
+    }
+    .row{
+      display:grid; gap:12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      align-items:end;
+    }
+    label{
+      font-size:.9rem; color:var(--muted); margin-bottom:6px; display:block;
+    }
+    select, input[type="number"], input[type="text"]{
+      width:100%;
+      background:var(--panel-2);
+      border:1px solid rgba(255,255,255,.08);
+      color:var(--text);
+      border-radius:12px;
+      padding:12px 14px;
+      outline:none;
+      font-size:1rem;
+      transition:.2s ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0);
+    }
+    select:focus, input:focus{
+      border-color:rgba(110,231,240,.6);
+      box-shadow: inset 0 0 0 1px rgba(110,231,240,.4), 0 0 0 6px rgba(110,231,240,.08);
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:12px 18px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, #2a2f58, #1b2040);
+      color:var(--text); font-weight:700; letter-spacing:.3px;
+      cursor:pointer; user-select:none; transition:.2s ease; text-decoration:none;
+      box-shadow: var(--shadow);
+    }
+    .btn:hover{ transform:translateY(-1px); }
+    .btn:active{ transform:translateY(0); }
+    .btn.primary{
+      background:linear-gradient(180deg, #42b7c6, #1fa3b3);
+      color:#071016; border-color:#58d7e6;
+      text-shadow:0 1px 0 rgba(255,255,255,.3);
+    }
+    .btn.ghost{
+      background:transparent;
+    }
+    .badges{
+      display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;
+    }
+    .badge{
+      padding:6px 10px; background:rgba(110,231,240,.12);
+      border:1px solid rgba(110,231,240,.35);
+      color:var(--acc); border-radius:999px; font-size:.8rem;
+    }
+
+    /* Exercise view */
+    .exercise{
+      margin-top:18px; padding:22px; display:none;
+    }
+    .exercise.active{ display:block; }
+    .flex{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    }
+    .timer{
+      display:flex; gap:10px; align-items:center; font-variant-numeric: tabular-nums;
+      background:linear-gradient(180deg, #23325a, #1a2446);
+      border:1px solid rgba(110,231,240,.3);
+      color:#eaffff; padding:10px 14px; border-radius:12px;
+      box-shadow: 0 0 0 4px rgba(110,231,240,.08);
+    }
+    .mini{
+      font-size:.85rem; color:var(--muted);
+    }
+    .op{
+      font-weight:900; font-size:clamp(28px, 8vw, 64px);
+      letter-spacing:1px;
+      text-align:center; margin:10px auto 4px;
+      padding:10px 16px; line-height:1.2;
+      border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      max-width: min(720px, 100%);
+      text-shadow: 0 2px 10px rgba(0,0,0,.35);
+    }
+    .answer-row{
+      display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:center;
+      max-width:min(720px, 100%); margin:8px auto;
+    }
+    .answer{
+      font-size:clamp(20px, 6vw, 40px);
+      padding:14px 16px; text-align:center; font-weight:700;
+    }
+    .btn.next{
+      font-size:1.05rem; padding:14px 18px;
+    }
+    .progress{
+      width:100%; height:10px; border-radius:999px; overflow:hidden;
+      background:rgba(255,255,255,.08); margin:10px 0 0;
+    }
+    .bar{
+      height:100%; width:0%;
+      background:linear-gradient(90deg, var(--acc), var(--acc-2));
+      box-shadow:0 0 20px rgba(110,231,240,.4);
+      transition: width .25s ease;
+    }
+
+    /* Results */
+    .results{
+      margin-top:18px; padding:22px; display:none;
+    }
+    .results.active{ display:block; }
+    .summary{
+      display:grid; gap:16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px; padding:16px;
+    }
+    .big{
+      font-size:1.6rem; font-weight:900;
+    }
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
+    .warn{ color:var(--warn); }
+    .list{
+      margin-top:10px; max-height:320px; overflow:auto; padding-right:6px;
+    }
+    .entry{
+      display:grid; grid-template-columns: 1fr auto auto; gap:8px;
+      padding:10px 10px; border-radius:10px; align-items:center;
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+      margin-bottom:8px;
+    }
+    .entry .eq{ font-weight:700; }
+    .pill{
+      padding:4px 8px; border-radius:999px; font-size:.8rem;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+    }
+    .pill.good{ border-color: rgba(16,185,129,.35); background:rgba(16,185,129,.12); color:var(--good); }
+    .pill.bad{ border-color: rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:var(--bad); }
+
+    /* Footer */
+    footer{
+      opacity:.8; text-align:center; font-size:.85rem; color:var(--muted);
+      padding:18px 16px 36px;
+    }
+
+    /* Responsive tweaks */
+    @media (min-width: 900px){
+      .grid{ grid-template-columns: 1.1fr 1fr; }
+    }
+  </style>
+
+  <meta name="theme-color" content="#0f1221" />
+
+  <script type="importmap">
+  {
+    "imports": {
+      "tinycolor2": "https://cdn.jsdelivr.net/npm/tinycolor2@1.6.0/+esm"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="title">FlashMind • Cálculo Mental</div>
+    </div>
+    <div class="badges">
+      <span class="badge">Responsivo</span>
+      <span class="badge">Sem internet</span>
+      <span class="badge">Foco no treino</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="grid">
+      <div class="panel config" id="configPanel" aria-label="Configurações">
+        <h2>Configurações do treino</h2>
+        <div class="row">
+          <div>
+            <label for="tipo">Tipo de cálculo</label>
+            <select id="tipo" aria-label="Tipo de cálculo">
+              <option value="add">Soma</option>
+              <option value="sub">Subtração</option>
+              <option value="mul">Multiplicação</option>
+              <option value="div">Divisão</option>
+              <option value="mix">Misturar</option>
+            </select>
+          </div>
+          <div>
+            <label for="qtd">Quantidade de exercícios</label>
+            <input id="qtd" type="number" min="1" max="100" step="1" value="10" />
+          </div>
+          <div>
+            <label for="digitos">Dígitos (número de casas)</label>
+            <select id="digitos">
+              <option value="1">1 dígito</option>
+              <option value="2" selected>2 dígitos</option>
+              <option value="3">3 dígitos</option>
+              <option value="4">4 dígitos</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="tempoPorEx">Tempo guia por exercício (segundos) — opcional</label>
+            <input id="tempoPorEx" type="number" min="0" max="120" step="1" placeholder="ex.: 5" />
+          </div>
+          <div>
+            <label for="semente">Semente aleatória — opcional (para repetir treino)</label>
+            <input id="semente" type="text" placeholder="ex.: aula-7" />
+          </div>
+        </div>
+        <div class="row">
+          <button id="btnStart" class="btn primary">Iniciar treino</button>
+          <button id="btnQuick" class="btn ghost">Rápido: 5 exercícios</button>
+        </div>
+      </div>
+
+      <div class="panel exercise" id="exercisePanel" aria-live="polite" aria-label="Exercício atual">
+        <div class="flex">
+          <div class="timer" title="Tempo total">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 1H9v2h6V1zM11 8h2v6h-2z"></path><path d="M19.03 7.39l1.42-1.42A9.969 9.969 0 0012 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10c0-2.42-.86-4.63-2.29-6.36l-1.42 1.42A7.96 7.96 0 0120 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c1.85 0 3.55.63 4.9 1.69l-1.61 1.7L19.03 7.39z"></path></svg>
+            <span id="tempoTotal">00:00.0</span>
+          </div>
+          <div class="mini">Exercício <span id="idxAtual">1</span>/<span id="totalEx">10</span></div>
+        </div>
+
+        <div id="opBox" class="op" aria-live="assertive" role="heading"></div>
+
+        <div class="answer-row">
+          <input id="resposta" class="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="Digite a resposta" aria-label="Sua resposta" />
+          <button id="btnConfirm" class="btn next">Confirmar</button>
+        </div>
+
+        <div class="progress" aria-label="Progresso">
+          <div id="progBar" class="bar"></div>
+        </div>
+      </div>
+
+      <div class="panel results" id="resultsPanel" aria-label="Resultados">
+        <h2>Resultados</h2>
+        <div class="summary">
+          <div class="card">
+            <div>Total de exercícios</div>
+            <div class="big"><span id="sumTotal">0</span></div>
+          </div>
+          <div class="card">
+            <div>Acertos</div>
+            <div class="big good"><span id="sumAcertos">0</span></div>
+          </div>
+          <div class="card">
+            <div>Erros</div>
+            <div class="big bad"><span id="sumErros">0</span></div>
+          </div>
+          <div class="card">
+            <div>Tempo total</div>
+            <div class="big warn"><span id="sumTempo">00:00.0</span></div>
+          </div>
+          <div class="card">
+            <div>Média por exercício</div>
+            <div class="big"><span id="sumMedia">0.0s</span></div>
+          </div>
+        </div>
+        <div class="list" id="listaResultados" aria-label="Lista de exercícios"></div>
+        <div class="badges" style="margin-top:12px">
+          <button id="btnReiniciar" class="btn primary">Reiniciar</button>
+          <button id="btnVoltar" class="btn ghost">Voltar ao menu</button>
+          <button id="btnCompartilhar" class="btn ghost">Compartilhar</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Dica: use apenas a cabeça e tente não escrever! Ajuste os dígitos para aumentar a dificuldade.
+  </footer>
+
+  <script type="module">
+    // Utilitário de cor leve (import opcional para demonstrar importmap)
+    import tinycolor from "tinycolor2";
+
+    // Estado global
+    const state = {
+      config: {
+        tipo: 'add',
+        qtd: 10,
+        digitos: 2,
+        tempoGuia: 0,
+        seed: null
+      },
+      exercicios: [],
+      atual: 0,
+      inicioTreino: 0,
+      tempoTotalTimer: null,
+      tempos: [], // ms por exercício
+      respostas: [],
+    };
+
+    // Elementos
+    const el = {
+      tipo: document.getElementById('tipo'),
+      qtd: document.getElementById('qtd'),
+      digitos: document.getElementById('digitos'),
+      tempoPorEx: document.getElementById('tempoPorEx'),
+      semente: document.getElementById('semente'),
+      btnStart: document.getElementById('btnStart'),
+      btnQuick: document.getElementById('btnQuick'),
+
+      configPanel: document.getElementById('configPanel'),
+      exercisePanel: document.getElementById('exercisePanel'),
+      resultsPanel: document.getElementById('resultsPanel'),
+
+      tempoTotal: document.getElementById('tempoTotal'),
+      idxAtual: document.getElementById('idxAtual'),
+      totalEx: document.getElementById('totalEx'),
+      opBox: document.getElementById('opBox'),
+      resposta: document.getElementById('resposta'),
+      btnConfirm: document.getElementById('btnConfirm'),
+      progBar: document.getElementById('progBar'),
+
+      sumTotal: document.getElementById('sumTotal'),
+      sumAcertos: document.getElementById('sumAcertos'),
+      sumErros: document.getElementById('sumErros'),
+      sumTempo: document.getElementById('sumTempo'),
+      sumMedia: document.getElementById('sumMedia'),
+
+      listaResultados: document.getElementById('listaResultados'),
+      btnReiniciar: document.getElementById('btnReiniciar'),
+      btnVoltar: document.getElementById('btnVoltar'),
+      btnCompartilhar: document.getElementById('btnCompartilhar'),
+    };
+
+    // Helpers
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const pad2 = n => String(n).padStart(2,'0');
+    function formatTime(ms) {
+      const t = Math.max(0, Math.round(ms));
+      const s = Math.floor(t/1000);
+      const m = Math.floor(s/60);
+      const r = s % 60;
+      const dec = Math.floor((t % 1000)/100);
+      return `${pad2(m)}:${pad2(r)}.${dec}`;
+    }
+    function formatSecs(ms){
+      return (ms/1000).toFixed(1) + 's';
+    }
+
+    // PRNG com semente (xmur3 + mulberry32)
+    function xmur3(str) {
+      let h = 1779033703 ^ str.length;
+      for (let i=0; i<str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+      }
+      return function() {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+      };
+    }
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      }
+    }
+    function seededRandom(seedStr){
+      const seed = xmur3(seedStr || (Date.now()+Math.random()).toString())();
+      return mulberry32(seed);
+    }
+
+    // Gerador de exercícios
+    function rangeByDigits(d) {
+      const min = d === 1 ? 0 : Math.pow(10, d-1);
+      const max = Math.pow(10, d)-1;
+      return [min, max];
+    }
+    function pickOp(tipo, rnd){
+      if (tipo !== 'mix') return tipo;
+      const ops = ['add','sub','mul','div'];
+      return ops[Math.floor(rnd()*ops.length)];
+    }
+    function genOne(cfg, rnd){
+      const op = pickOp(cfg.tipo, rnd);
+      const [min, max] = rangeByDigits(cfg.digitos);
+
+      let a, b, text, answer, display;
+      if (op === 'add') {
+        a = Math.floor(rnd()*(max-min+1))+min;
+        b = Math.floor(rnd()*(max-min+1))+min;
+        answer = a + b;
+        text = `${a} + ${b}`;
+      } else if (op === 'sub') {
+        // Garante resultado não-negativo para iniciantes
+        a = Math.floor(rnd()*(max-min+1))+min;
+        b = Math.floor(rnd()*(max-min+1))+min;
+        if (a < b) [a,b] = [b,a];
+        answer = a - b;
+        text = `${a} − ${b}`;
+      } else if (op === 'mul') {
+        a = Math.floor(rnd()*(max-min+1))+min;
+        b = Math.floor(rnd()*(max-min+1))+min;
+        answer = a * b;
+        text = `${a} × ${b}`;
+      } else {
+        // Divisão com resultado inteiro
+        b = Math.max(1, Math.floor(rnd()*(max-min+1))+min); // evita zero
+        const k = Math.floor(rnd()*Math.max(2, Math.floor(max/b))) + 1;
+        a = b * k;
+        answer = a / b;
+        text = `${a} ÷ ${b}`;
+      }
+      display = text;
+      return { op, a, b, text: display, answer };
+    }
+    function genSet(cfg){
+      const rnd = seededRandom(cfg.seed || '');
+      const list = [];
+      for (let i=0; i<cfg.qtd; i++){
+        list.push(genOne(cfg, rnd));
+      }
+      return list;
+    }
+
+    // UI transitions
+    function show(panel){
+      el.configPanel.style.display = panel==='config'?'grid':'none';
+      el.exercisePanel.classList.toggle('active', panel==='exercise');
+      el.resultsPanel.classList.toggle('active', panel==='results');
+    }
+
+    // Execução do treino
+    let exStart = 0;
+
+    function start(){
+      // Lê config
+      state.config.tipo = el.tipo.value;
+      state.config.qtd = clamp(parseInt(el.qtd.value||'10'),1,100);
+      state.config.digitos = clamp(parseInt(el.digitos.value||'2'),1,6);
+      state.config.tempoGuia = clamp(parseInt(el.tempoPorEx.value||'0'),0,120);
+      state.config.seed = (el.semente.value||'').trim() || null;
+
+      state.exercicios = genSet(state.config);
+      state.atual = 0;
+      state.tempos = [];
+      state.respostas = [];
+      el.totalEx.textContent = state.exercicios.length;
+
+      // Visual
+      show('exercise');
+      updateGradientByOp(state.exercicios[0].op);
+
+      // Reset progress
+      el.progBar.style.width = '0%';
+      el.idxAtual.textContent = '1';
+      el.resposta.value = '';
+      el.resposta.focus();
+
+      // Timer total
+      state.inicioTreino = performance.now();
+      if (state.tempoTotalTimer) cancelAnimationFrame(state.tempoTotalTimer);
+      tickTotal();
+      renderExercise();
+    }
+
+    function tickTotal(){
+      const now = performance.now();
+      const elapsed = now - state.inicioTreino;
+      el.tempoTotal.textContent = formatTime(elapsed);
+      state.tempoTotalTimer = requestAnimationFrame(tickTotal);
+    }
+
+    function renderExercise(){
+      const ex = state.exercicios[state.atual];
+      el.opBox.textContent = ex.text;
+      el.idxAtual.textContent = String(state.atual+1);
+      el.resposta.value = '';
+      el.resposta.focus();
+      exStart = performance.now();
+
+      // Atualiza barra de progresso
+      const pct = (state.atual / state.exercicios.length) * 100;
+      el.progBar.style.width = pct.toFixed(2) + '%';
+
+      // Dica de tempo por exercício colorindo a barra
+      if (state.config.tempoGuia > 0){
+        const base = tinycolor('#22d3ee');
+        const c1 = base.toHexString();
+        const c2 = base.triad()[1].toHexString();
+        el.progBar.style.background = `linear-gradient(90deg, ${c1}, ${c2})`;
+      } else {
+        el.progBar.style.background = `linear-gradient(90deg, var(--acc), var(--acc-2))`;
+      }
+    }
+
+    function confirmAnswer(){
+      const ex = state.exercicios[state.atual];
+      const end = performance.now();
+      const dt = end - exStart;
+
+      // Parse answer
+      const raw = el.resposta.value.trim().replace(',', '.');
+      let ok = false;
+      let num = null;
+      if (raw.length){
+        num = Number(raw);
+        ok = Number.isFinite(num) && (Math.abs(num - ex.answer) < 1e-9);
+      }
+      state.tempos.push(dt);
+      state.respostas.push({ user: raw, ok, correct: ex.answer });
+
+      // Feedback rápido visual no campo
+      quickFlash(ok);
+
+      // Próximo
+      state.atual++;
+      if (state.atual >= state.exercicios.length){
+        finish();
+      } else {
+        updateGradientByOp(state.exercicios[state.atual].op);
+        renderExercise();
+      }
+    }
+
+    function finish(){
+      // Para timer total
+      if (state.tempoTotalTimer) cancelAnimationFrame(state.tempoTotalTimer);
+
+      // Atualiza barra completa
+      el.progBar.style.width = '100%';
+
+      // Métricas
+      const total = state.exercicios.length;
+      const acertos = state.respostas.filter(r => r.ok).length;
+      const erros = total - acertos;
+      const tempoTotal = state.tempos.reduce((a,b)=>a+b,0);
+      const media = tempoTotal / Math.max(1, total);
+
+      el.sumTotal.textContent = String(total);
+      el.sumAcertos.textContent = String(acertos);
+      el.sumErros.textContent = String(erros);
+      el.sumTempo.textContent = formatTime(tempoTotal);
+      el.sumMedia.textContent = formatSecs(media);
+
+      // Lista de resultados
+      el.listaResultados.innerHTML = '';
+      for (let i=0;i<total;i++){
+        const ex = state.exercicios[i];
+        const r = state.respostas[i];
+        const tempo = state.tempos[i];
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <div class="eq">${i+1}. ${ex.text} = ${ex.answer}</div>
+          <div class="pill ${r.ok?'good':'bad'}">${r.ok?'Certo':'Errado'}</div>
+          <div class="pill">${formatSecs(tempo)}</div>
+        `;
+        el.listaResultados.appendChild(div);
+      }
+
+      show('results');
+    }
+
+    // Visual feedback
+    function quickFlash(ok){
+      const input = el.resposta;
+      input.style.transition = 'background-color .15s ease, box-shadow .15s ease';
+      if (ok){
+        input.style.backgroundColor = 'rgba(16,185,129,.15)';
+        input.style.boxShadow = '0 0 0 6px rgba(16,185,129,.12) inset';
+      } else {
+        input.style.backgroundColor = 'rgba(239,68,68,.12)';
+        input.style.boxShadow = '0 0 0 6px rgba(239,68,68,.10) inset';
+      }
+      setTimeout(()=>{
+        input.style.backgroundColor = '';
+        input.style.boxShadow = '';
+      }, 280);
+    }
+
+    function updateGradientByOp(op){
+      const root = document.documentElement;
+      let c1='#6ee7f0', c2='#a78bfa';
+      if (op==='add'){ c1='#34d399'; c2='#22d3ee'; }
+      else if (op==='sub'){ c1='#f59e0b'; c2='#fb7185'; }
+      else if (op==='mul'){ c1='#60a5fa'; c2='#c084fc'; }
+      else if (op==='div'){ c1='#f472b6'; c2='#22d3ee'; }
+
+      root.style.setProperty('--acc', c1);
+      root.style.setProperty('--acc-2', c2);
+    }
+
+    // Controles
+    el.btnStart.addEventListener('click', start);
+    el.btnQuick.addEventListener('click', () => {
+      el.qtd.value = 5;
+      el.tipo.value = 'mix';
+      el.digitos.value = '1';
+      start();
+    });
+
+    el.btnConfirm.addEventListener('click', confirmAnswer);
+    el.resposta.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter') {
+        confirmAnswer();
+      }
+    });
+
+    el.btnReiniciar.addEventListener('click', () => {
+      // reinicia com mesma config e semente
+      start();
+    });
+    el.btnVoltar.addEventListener('click', () => {
+      show('config');
+    });
+
+    el.btnCompartilhar.addEventListener('click', async ()=>{
+      const total = state.exercicios.length;
+      const acertos = state.respostas.filter(r => r.ok).length;
+      const tempoTotal = state.tempos.reduce((a,b)=>a+b,0);
+      const msg = `Treinei ${total} exercícios no FlashMind e acertei ${acertos}. Tempo total: ${formatTime(tempoTotal)}.`;
+      try{
+        if (navigator.share){
+          await navigator.share({ text: msg, title: 'FlashMind' });
+        } else {
+          await navigator.clipboard.writeText(msg);
+          el.btnCompartilhar.textContent = 'Copiado!';
+          setTimeout(()=> el.btnCompartilhar.textContent = 'Compartilhar', 1200);
+        }
+      } catch(e){
+        console.log('Compartilhar falhou', e);
+      }
+    });
+
+    // Acessibilidade básica: manter foco no input ao trocar de exercício
+    document.addEventListener('visibilitychange', ()=>{
+      if (!document.hidden && el.exercisePanel.classList.contains('active')) {
+        el.resposta.focus();
+      }
+    });
+
+    // Inicia na tela de config
+    show('config');
+
+    // PWAs-ish: gerar favicon procedural
+    (function proceduralFavicon(){
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      const g = c.getContext('2d');
+      const grad = g.createLinearGradient(0,0,64,64);
+      grad.addColorStop(0,'#22d3ee');
+      grad.addColorStop(1,'#a78bfa');
+      g.fillStyle = grad;
+      g.fillRect(0,0,64,64);
+      g.fillStyle = 'rgba(255,255,255,.9)';
+      g.font = 'bold 38px system-ui';
+      g.textAlign='center'; g.textBaseline='middle';
+      g.fillText('FM', 32, 34);
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = c.toDataURL('image/png');
+      document.head.appendChild(link);
+    })();
+  </script>
+</body>
+</html>
