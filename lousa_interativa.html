@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lousa Digital Interativa</title>
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fabric.js para manipulação do canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        /* Estilo para o corpo da página e canvas */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Evita barras de rolagem */
+        }
+        .canvas-container {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        /* Estilo para o botão de ferramenta ativo */
+        .tool-btn.active {
+            background-color: #3b82f6; /* Azul mais forte */
+            color: white;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen">
+
+    <!-- Barra de Ferramentas Superior -->
+    <header id="toolbar" class="bg-white shadow-md p-2 z-10 w-full">
+        <div class="container mx-auto flex flex-wrap items-center gap-4 justify-center md:justify-start">
+            
+            <!-- Ferramentas de Desenho e Seleção -->
+            <div class="flex items-center gap-2 border-r pr-4">
+                <button id="select-tool" class="tool-btn p-2 rounded-lg hover:bg-gray-200 active" title="Selecionar e Mover (V)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+                </button>
+                <button id="draw-tool" class="tool-btn p-2 rounded-lg hover:bg-gray-200" title="Desenho Livre (P)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+                <button id="rect-tool" class="tool-btn p-2 rounded-lg hover:bg-gray-200" title="Retângulo (R)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+                </button>
+                <button id="circle-tool" class="tool-btn p-2 rounded-lg hover:bg-gray-200" title="Círculo (C)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                </button>
+                <button id="text-tool" class="tool-btn p-2 rounded-lg hover:bg-gray-200" title="Texto (T)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6.1H7"/><path d="M21 12.1H3"/><path d="M15 18.1H9"/><path d="M12 18.1V6.1"/></svg>
+                </button>
+            </div>
+
+            <!-- Controles de Cor -->
+            <div class="flex items-center gap-3 border-r pr-4">
+                <div class="flex flex-col items-center">
+                    <label for="fill-color" class="text-xs text-gray-600">Preenchimento</label>
+                    <input type="color" id="fill-color" value="#e0e0e0" class="w-10 h-8 p-0 border-none rounded cursor-pointer">
+                </div>
+                <div class="flex flex-col items-center">
+                    <label for="stroke-color" class="text-xs text-gray-600">Borda/Linha</label>
+                    <input type="color" id="stroke-color" value="#000000" class="w-10 h-8 p-0 border-none rounded cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Controles de Texto -->
+            <div class="flex items-center gap-3 border-r pr-4">
+                 <div class="flex flex-col items-center">
+                    <label for="font-size" class="text-xs text-gray-600">Tamanho</label>
+                    <input type="number" id="font-size" value="24" min="8" class="w-16 p-1 border border-gray-300 rounded-md text-center">
+                </div>
+                <div class="flex flex-col items-center">
+                    <label for="font-family" class="text-xs text-gray-600">Fonte</label>
+                    <select id="font-family" class="p-1 border border-gray-300 rounded-md">
+                        <option>Arial</option>
+                        <option>Verdana</option>
+                        <option>Georgia</option>
+                        <option>Courier New</option>
+                        <option>Times New Roman</option>
+                        <option>Impact</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="flex items-center gap-2">
+                <button id="delete-tool" class="p-2 rounded-lg hover:bg-red-500 hover:text-white text-red-500" title="Excluir (Delete)">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Área da Lousa -->
+    <main id="canvas-container" class="flex-grow bg-white">
+        <canvas id="whiteboard"></canvas>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvasContainer = document.getElementById('canvas-container');
+            const canvasElement = document.getElementById('whiteboard');
+            
+            // Inicializa o canvas do Fabric.js
+            const canvas = new fabric.Canvas('whiteboard', {
+                backgroundColor: '#ffffff',
+                isDrawingMode: false
+            });
+
+            // Função para ajustar o tamanho do canvas ao da janela
+            function resizeCanvas() {
+                const { width, height } = canvasContainer.getBoundingClientRect();
+                canvas.setWidth(width);
+                canvas.setHeight(height);
+                canvas.renderAll();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas(); // Ajusta o tamanho inicial
+
+            // --- ESTADO DA APLICAÇÃO ---
+            let currentTool = 'select'; // Ferramenta inicial
+            let isAddingShape = false; // Controla se estamos no modo de adicionar forma com um clique
+            let isTextEditing = false; // <<< NOVO >>> Controla se um objeto de texto está sendo editado
+
+            // --- ELEMENTOS DA UI ---
+            const toolButtons = document.querySelectorAll('.tool-btn');
+            const selectToolBtn = document.getElementById('select-tool');
+            const drawToolBtn = document.getElementById('draw-tool');
+            const rectToolBtn = document.getElementById('rect-tool');
+            const circleToolBtn = document.getElementById('circle-tool');
+            const textToolBtn = document.getElementById('text-tool');
+            const deleteToolBtn = document.getElementById('delete-tool');
+            const fillColorInput = document.getElementById('fill-color');
+            const strokeColorInput = document.getElementById('stroke-color');
+            const fontSizeInput = document.getElementById('font-size');
+            const fontFamilySelect = document.getElementById('font-family');
+
+            // --- FUNÇÕES DE ATUALIZAÇÃO ---
+
+            // Atualiza a aparência do botão da ferramenta ativa
+            function updateActiveToolButton() {
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`${currentTool}-tool`).classList.add('active');
+            }
+
+            // Define a ferramenta atual e atualiza a UI
+            function setTool(tool) {
+                currentTool = tool;
+                isAddingShape = ['rect', 'circle', 'text'].includes(tool);
+                canvas.isDrawingMode = (tool === 'draw');
+                canvas.selection = (tool === 'select');
+                canvas.defaultCursor = (isAddingShape) ? 'crosshair' : 'default';
+                canvas.discardActiveObject().renderAll(); // Desseleciona objetos ao trocar de ferramenta
+                updateActiveToolButton();
+            }
+
+            // Atualiza as propriedades do objeto selecionado
+            function updateObjectProperties(obj) {
+                if (!obj) return;
+
+                const fillColor = fillColorInput.value;
+                const strokeColor = strokeColorInput.value;
+
+                if (obj.type === 'i-text') {
+                    const fontSize = fontSizeInput.value;
+                    const fontFamily = fontFamilySelect.value;
+                    obj.set({ 
+                        fill: strokeColor, // Texto usa a cor da "borda"
+                        fontSize: parseInt(fontSize, 10),
+                        fontFamily: fontFamily
+                    });
+                } else if (obj.type === 'path') { // Desenho livre
+                    obj.set({ stroke: strokeColor });
+                } else { // Formas
+                    obj.set({
+                        fill: fillColor,
+                        stroke: strokeColor,
+                        strokeWidth: 2
+                    });
+                }
+                canvas.renderAll();
+            }
+
+            // --- EVENT LISTENERS ---
+
+            // Ferramentas
+            selectToolBtn.addEventListener('click', () => setTool('select'));
+            drawToolBtn.addEventListener('click', () => setTool('draw'));
+            rectToolBtn.addEventListener('click', () => setTool('rect'));
+            circleToolBtn.addEventListener('click', () => setTool('circle'));
+            textToolBtn.addEventListener('click', () => setTool('text'));
+            
+            // Excluir objeto(s) selecionado(s)
+            deleteToolBtn.addEventListener('click', () => {
+                const activeObjects = canvas.getActiveObjects();
+                if (activeObjects.length > 0) {
+                    activeObjects.forEach(obj => canvas.remove(obj));
+                    canvas.discardActiveObject().renderAll();
+                }
+            });
+
+            // Controles de propriedades
+            fillColorInput.addEventListener('input', () => {
+                const activeObj = canvas.getActiveObject();
+                if (activeObj) {
+                    updateObjectProperties(activeObj);
+                }
+            });
+
+            strokeColorInput.addEventListener('input', () => {
+                const activeObj = canvas.getActiveObject();
+                canvas.freeDrawingBrush.color = strokeColorInput.value;
+                if (activeObj) {
+                    updateObjectProperties(activeObj);
+                }
+            });
+
+            fontSizeInput.addEventListener('change', () => {
+                 const activeObj = canvas.getActiveObject();
+                if (activeObj && activeObj.type === 'i-text') {
+                    updateObjectProperties(activeObj);
+                }
+            });
+
+            fontFamilySelect.addEventListener('change', () => {
+                const activeObj = canvas.getActiveObject();
+                if (activeObj && activeObj.type === 'i-text') {
+                    updateObjectProperties(activeObj);
+                }
+            });
+
+            // Eventos do Canvas
+            canvas.on('mouse:down', (options) => {
+                if (!isAddingShape || !options.pointer) return;
+
+                const { x, y } = options.pointer;
+                let newObject;
+
+                const fillColor = fillColorInput.value;
+                const strokeColor = strokeColorInput.value;
+
+                switch (currentTool) {
+                    case 'rect':
+                        newObject = new fabric.Rect({
+                            left: x,
+                            top: y,
+                            width: 150,
+                            height: 100,
+                            fill: fillColor,
+                            stroke: strokeColor,
+                            strokeWidth: 2,
+                            originX: 'center',
+                            originY: 'center'
+                        });
+                        break;
+                    case 'circle':
+                        newObject = new fabric.Circle({
+                            left: x,
+                            top: y,
+                            radius: 75,
+                            fill: fillColor,
+                            stroke: strokeColor,
+                            strokeWidth: 2,
+                            originX: 'center',
+                            originY: 'center'
+                        });
+                        break;
+                    case 'text':
+                        newObject = new fabric.IText('Digite aqui...', {
+                            left: x,
+                            top: y,
+                            fontFamily: fontFamilySelect.value,
+                            fontSize: parseInt(fontSizeInput.value, 10),
+                            fill: strokeColor, // Cor do texto
+                            originX: 'center',
+                            originY: 'center'
+                        });
+                        break;
+                }
+
+                if (newObject) {
+                    canvas.add(newObject);
+                    canvas.setActiveObject(newObject);
+                    if (newObject.type === 'i-text') {
+                        newObject.enterEditing();
+                        newObject.selectAll();
+                    }
+                    setTool('select'); // Volta para a ferramenta de seleção após adicionar
+                }
+            });
+
+            // Evento para atualizar a UI de propriedades quando um objeto é selecionado
+            canvas.on('selection:created', (e) => updateUIOnSelection(e.target));
+            canvas.on('selection:updated', (e) => updateUIOnSelection(e.target));
+            canvas.on('selection:cleared', () => { /* Pode resetar a UI se desejar */ });
+            
+            // <<< NOVO >>> Eventos para controlar o estado de edição de texto
+            canvas.on('text:editing:entered', () => {
+                isTextEditing = true;
+            });
+            canvas.on('text:editing:exited', () => {
+                isTextEditing = false;
+            });
+
+
+            function updateUIOnSelection(obj) {
+                if (!obj) {
+                    return;
+                }
+                if (obj.type === 'activeSelection') {
+                    const firstObj = obj.getObjects()[0];
+                    if (firstObj) {
+                       updateUIOnSelection(firstObj); 
+                    }
+                    return;
+                }
+                if (obj.type === 'i-text') {
+                    strokeColorInput.value = obj.fill;
+                    fontSizeInput.value = obj.fontSize;
+                    fontFamilySelect.value = obj.fontFamily;
+                } else if (obj.type === 'path') {
+                    strokeColorInput.value = obj.stroke;
+                } else {
+                    fillColorInput.value = obj.fill;
+                    strokeColorInput.value = obj.stroke;
+                }
+            }
+            
+            // Atalhos do teclado
+            window.addEventListener('keydown', (e) => {
+                // <<< CORRIGIDO >>> Ignora atalhos se o foco estiver em um input, select OU se estiver editando um texto no canvas
+                if (document.activeElement.tagName === 'INPUT' || 
+                    document.activeElement.tagName === 'SELECT' || 
+                    isTextEditing) {
+                    return;
+                }
+
+                switch(e.key.toLowerCase()) {
+                    case 'delete':
+                    case 'backspace':
+                        deleteToolBtn.click();
+                        break;
+                    case 'v':
+                        setTool('select');
+                        break;
+                    case 'p':
+                        setTool('draw');
+                        break;
+                    case 'r':
+                        setTool('rect');
+                        break;
+                    case 'c':
+                        setTool('circle');
+                        break;
+                    case 't':
+                        setTool('text');
+                        break;
+                }
+            });
+
+            // --- INICIALIZAÇÃO ---
+            setTool('select'); // Define a ferramenta inicial
+            canvas.freeDrawingBrush.width = 3;
+            canvas.freeDrawingBrush.color = strokeColorInput.value;
+        });
+    </script>
+</body>
+</html>
