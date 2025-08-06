@@ -10,7 +10,7 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Estilo para ocultar os radio buttons originais e estilizar os labels */
+
         .clef-line-option {
             display: none;
         }
@@ -22,15 +22,15 @@
             transition: all 0.2s ease-in-out;
         }
         .clef-line-option:checked + .clef-line-label {
-            background-color: #3b82f6; /* bg-blue-600 */
+            background-color: #3b82f6; 
             color: white;
-            border-color: #2563eb; /* border-blue-700 */
+            border-color: #2563eb; 
         }
         .feedback-correct {
-            color: #16a34a; /* text-green-600 */
+            color: #16a34a; 
         }
         .feedback-incorrect {
-            color: #dc2626; /* text-red-600 */
+            color: #dc2626; 
         }
     </style>
 </head>
@@ -38,12 +38,10 @@
 
     <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 md:p-8">
 
-        <!-- TELA DE MENU -->
         <div id="menu-screen">
             <h1 class="text-3xl font-bold text-center mb-6">Treinador de Partitura</h1>
             
             <div class="space-y-6">
-                <!-- 1. TIPO DE EXERCÍCIO -->
                 <div>
                     <h2 class="text-lg font-semibold mb-2">1. Escolha o Exercício</h2>
                     <div class="flex flex-col sm:flex-row gap-4">
@@ -58,7 +56,6 @@
                     </div>
                 </div>
 
-                <!-- 2. CONFIGURAÇÕES DA PAUTA -->
                 <div>
                     <h2 class="text-lg font-semibold mb-2">2. Configure a Pauta</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -71,12 +68,10 @@
                             </select>
                         </div>
                         <div id="clef-line-container">
-                            <!-- As opções de linha serão inseridas aqui pelo JS -->
                         </div>
                     </div>
                 </div>
 
-                <!-- 3. OPÇÕES ADICIONAIS -->
                 <div>
                     <h2 class="text-lg font-semibold mb-2">3. Opções Adicionais</h2>
                     <div class="space-y-2">
@@ -97,7 +92,6 @@
             </button>
         </div>
 
-        <!-- TELA DE EXERCÍCIO -->
         <div id="exercise-screen" class="hidden">
             <div class="flex justify-between items-center mb-4">
                 <h2 id="exercise-title" class="text-2xl font-bold">Exercício</h2>
@@ -107,18 +101,13 @@
                 </div>
             </div>
 
-            <!-- Container da Pauta SVG -->
             <div id="staff-container" class="relative w-full h-48 bg-gray-50 border rounded-lg mb-6 flex items-center justify-center p-4">
-                <!-- O SVG da pauta será gerado aqui -->
             </div>
 
-            <!-- Seção de Resposta -->
             <div id="answer-section" class="mb-4">
-                <!-- O conteúdo da resposta (nome da nota ou intervalo) será gerado aqui -->
             </div>
             
             <div id="feedback-section" class="h-10 mb-4 text-center text-lg font-semibold">
-                <!-- Feedback (correto/incorreto) aparece aqui -->
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -130,7 +119,6 @@
     </div>
 
     <script>
-        // Elementos da UI
         const menuScreen = document.getElementById('menu-screen');
         const exerciseScreen = document.getElementById('exercise-screen');
         const startBtn = document.getElementById('start-btn');
@@ -146,46 +134,40 @@
         const totalTimeEl = document.getElementById('total-time');
         const exerciseTitleEl = document.getElementById('exercise-title');
 
-        // Estado do aplicativo
+
         let currentExercise = {};
         let exerciseSettings = {};
         let timerInterval;
         let startTime;
         let totalTime = 0;
 
-        // --- CONSTANTES E DADOS MUSICAIS ---
+
         const NOTE_NAMES = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'];
         const ACCIDENTAL_NAMES = { '#': 'Sustenido', 'b': 'Bemol' };
         const INTERVAL_NAMES = {
             0: 'Uníssono Justo', 1: 'Segunda Menor', 2: 'Segunda Maior', 3: 'Terça Menor',
-            4: 'Terça Maior', 5: 'Quarta Justa', 6: 'Trítono', 7: 'Quinta Justa',
-            8: 'Sexta Menor', 9: 'Sexta Maior', 10: 'Sétima Menor', 11: 'Sétima Maior', 12: 'Oitava Justa'
+            4: 'Terça Maior', 5: 'Quarta Justa', 6: 'Quarta aumentada/Quinta diminuta', 7: 'Quinta Justa',
+            8: 'Sexta Menor', 9: 'Sexta Maior', 10: 'Sétima Menor', 11: 'Sétima Maior', 12: 'Oitava Justa', 
+            13: 'Intervalo desconhecido'
         };
 
-        // Mapeia o nome da nota para um valor numérico (Dó=0, Ré=2, etc) para facilitar cálculos de MIDI
+
         const noteToValue = { 'Dó': 0, 'Ré': 2, 'Mi': 4, 'Fá': 5, 'Sol': 7, 'Lá': 9, 'Si': 11 };
 
-        // Define a nota de referência na linha do meio (posição 0) para cada clave.
+
         const CLEF_INFO = {
             g: {
-                // Clave de Sol na 2ª linha (pos -2) => a 3ª linha (pos 0) é Si4
-                2: { baseNoteName: 'Si', baseNoteOctave: 4 }
+                2: { baseNoteName: 'Si', baseNoteOctave: 3 }
             },
             f: {
-                // Clave de Fá na 4ª linha (pos 2) => a 3ª linha (pos 0) é Ré3
-                4: { baseNoteName: 'Ré', baseNoteOctave: 3 },
-                // Clave de Fá na 3ª linha (pos 0) => a 3ª linha (pos 0) é Fá3
-                3: { baseNoteName: 'Fá', baseNoteOctave: 3 }
+                4: { baseNoteName: 'Ré', baseNoteOctave: 2 },
+                3: { baseNoteName: 'Fá', baseNoteOctave: 2 }
             },
             c: {
-                // Clave de Dó na 1ª linha (pos -4) => a 3ª linha (pos 0) é Sol4
-                1: { baseNoteName: 'Sol', baseNoteOctave: 4 },
-                // Clave de Dó na 2ª linha (pos -2) => a 3ª linha (pos 0) é Mi4
-                2: { baseNoteName: 'Mi', baseNoteOctave: 4 },
-                // Clave de Dó na 3ª linha (pos 0) => a 3ª linha (pos 0) é Dó4
-                3: { baseNoteName: 'Dó', baseNoteOctave: 4 },
-                // Clave de Dó na 4ª linha (pos 2) => a 3ª linha (pos 0) é Lá3
-                4: { baseNoteName: 'Lá', baseNoteOctave: 3 }
+                1: { baseNoteName: 'Sol', baseNoteOctave: 3 },
+                2: { baseNoteName: 'Mi', baseNoteOctave: 3 },
+                3: { baseNoteName: 'Dó', baseNoteOctave: 3 },
+                4: { baseNoteName: 'Lá', baseNoteOctave: 2 }
             }
         };
 
@@ -195,7 +177,7 @@
             c: { label: 'Linha da Clave de Dó', lines: { 3: 'Linha 3 (Contralto)', 4: 'Linha 4 (Tenor)', 1: 'Linha 1 (Soprano)', 2: 'Linha 2 (Mezzo-soprano)' } }
         };
 
-        // --- LÓGICA DE GERAÇÃO DA UI ---
+
 
         function updateClefLines() {
             const clef = clefSelect.value;
@@ -213,7 +195,6 @@
             clefLineContainer.innerHTML = html;
         }
 
-        // --- LÓGICA DOS EXERCÍCIOS ---
 
         function startExercise() {
             exerciseSettings = {
@@ -274,11 +255,11 @@
         }
 
         function generateRandomNote(canHaveAccidentals = true) {
-            let minPosition = -5; // Espaço abaixo da 1ª linha suplementar inferior
-            let maxPosition = 9;  // Espaço acima da 2ª linha suplementar superior
+            let minPosition = -5; 
+            let maxPosition = 9;  
             if (!exerciseSettings.allowLedger) {
-                minPosition = -4; // 1ª linha
-                maxPosition = 4;  // 5ª linha
+                minPosition = -4; 
+                maxPosition = 4;  
             }
 
             const position = Math.floor(Math.random() * (maxPosition - minPosition + 1)) + minPosition;
@@ -328,7 +309,6 @@
             nextBtn.classList.remove('hidden');
         }
 
-        // --- FUNÇÕES DE UI PARA RESPOSTAS ---
         
         function setupNoteNameAnswerUI() {
             let noteOptions = NOTE_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
@@ -364,8 +344,6 @@
                     <select id="interval-select" class="w-full p-2 border rounded-lg">${intervalOptions}</select>
                 </div>`;
         }
-
-        // --- FUNÇÕES DE DESENHO SVG ---
 
         function drawStaff() {
             const staffHeight = 80;
@@ -408,23 +386,19 @@
             const noteRadius = step * 0.9;
             const y = 60 - note.position * step;
             
-            // Linhas suplementares
             if (note.position <= -5) { svg.innerHTML += `<line x1="${x - noteRadius * 1.8}" y1="${y}" x2="${x + noteRadius * 1.8}" y2="${y}" stroke="black" stroke-width="1.5"/>`; }
             if (note.position <= -7) { svg.innerHTML += `<line x1="${x - noteRadius * 1.8}" y1="${y + lineSpacing}" x2="${x + noteRadius * 1.8}" y2="${y + lineSpacing}" stroke="black" stroke-width="1.5"/>`; }
             if (note.position >= 5) { svg.innerHTML += `<line x1="${x - noteRadius * 1.8}" y1="${y}" x2="${x + noteRadius * 1.8}" y2="${y}" stroke="black" stroke-width="1.5"/>`; }
             if (note.position >= 7) { svg.innerHTML += `<line x1="${x - noteRadius * 1.8}" y1="${y - lineSpacing}" x2="${x + noteRadius * 1.8}" y2="${y - lineSpacing}" stroke="black" stroke-width="1.5"/>`; }
             if (note.position >= 9) { svg.innerHTML += `<line x1="${x - noteRadius * 1.8}" y1="${y - lineSpacing * 2}" x2="${x + noteRadius * 1.8}" y2="${y - lineSpacing * 2}" stroke="black" stroke-width="1.5"/>`; }
 
-            // Cabeça da nota
             svg.innerHTML += `<circle cx="${x}" cy="${y}" r="${noteRadius}" fill="black" />`;
             
-            // Haste
             const stemDirection = note.position >= 0 ? -1 : 1;
             const stemHeight = lineSpacing * 3;
             const stemX = x + (stemDirection === 1 ? -noteRadius : noteRadius);
             svg.innerHTML += `<line x1="${stemX}" y1="${y}" x2="${stemX}" y2="${y + stemHeight * stemDirection}" stroke="black" stroke-width="2"/>`;
 
-            // Acidentes
             if (note.accidental !== 'natural') {
                 const accidentalX = x - noteRadius * 3.5;
                 let accidentalSymbol = '';
@@ -437,7 +411,6 @@
             }
         }
 
-        // --- FUNÇÕES AUXILIARES DE MÚSICA ---
 
         function getNoteFromPosition(position, clefSettings) {
             const baseNoteInfo = CLEF_INFO[clefSettings.clef][clefSettings.clefLine];
@@ -447,12 +420,12 @@
 
             if (position > 0) {
                 for (let i = 0; i < position; i++) {
-                    if (currentNoteIndex === 6) { currentOctave++; } // Si para Dó
+                    if (currentNoteIndex === 6) { currentOctave++; } 
                     currentNoteIndex = (currentNoteIndex + 1) % 7;
                 }
             } else if (position < 0) {
                 for (let i = 0; i > position; i--) {
-                    if (currentNoteIndex === 0) { currentOctave--; } // Dó para Si
+                    if (currentNoteIndex === 0) { currentOctave--; } 
                     currentNoteIndex = (currentNoteIndex - 1 + 7) % 7;
                 }
             }
@@ -466,7 +439,6 @@
             return value;
         }
 
-        // --- LÓGICA DO TIMER ---
 
         function startTimer() {
             startTime = Date.now();
@@ -484,7 +456,6 @@
             totalTimeEl.textContent = totalTime.toFixed(1) + 's';
         }
 
-        // --- INICIALIZAÇÃO E EVENTOS ---
 
         function goBackToMenu() {
             exerciseScreen.classList.add('hidden');
