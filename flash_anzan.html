@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flash Anzan Responsivo</title>
+  <style>
+    :root{
+      --bg:#0f1220;
+      --panel:#171a2b;
+      --accent:#4dd7b4;
+      --accent-2:#6ea8fe;
+      --text:#f3f6ff;
+      --muted:#a9b0c3;
+      --danger:#ff6b6b;
+      --ok:#1dd1a1;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 80% -10%, #263069 0%, transparent 60%) , linear-gradient(180deg, #0b0e1a 0%, #0f1220 100%);
+    }
+    .app{
+      min-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: clamp(12px, 3vw, 24px);
+    }
+    .card{
+      width: min(100%, 980px);
+      background: color-mix(in oklab, var(--panel) 88%, black 12%);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      box-shadow: 0 30px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+      overflow: clip;
+    }
+    header.nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 14px clamp(14px, 3vw, 28px);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px;
+    }
+    .logo{
+      width:34px; height:34px; border-radius:9px;
+      background: conic-gradient(from 210deg, var(--accent), var(--accent-2));
+      box-shadow: inset 0 0 12px rgba(255,255,255,.2), 0 6px 16px rgba(0,0,0,.35);
+      position:relative; overflow:hidden;
+    }
+    .logo::after{
+      content:""; position:absolute; inset:4px; border-radius:6px;
+      background: radial-gradient(180px 60px at 50% 120%, rgba(255,255,255,.25), transparent 55%),
+                  linear-gradient(160deg, rgba(255,255,255,.2), transparent 40%);
+      mix-blend-mode:screen;
+    }
+    .brand small{color:var(--muted); font-weight:500}
+
+    main{ display:block; }
+    .layout{
+      display:block;
+      gap: clamp(12px, 2.5vw, 24px);
+      padding: clamp(16px, 3.5vw, 32px);
+    }
+
+    .panel{
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: clamp(12px, 3vw, 24px);
+    }
+    .panel h2{
+      margin:0 0 12px 0; font-size: clamp(18px, 2.3vw, 22px);
+    }
+    .muted{ color: var(--muted); font-size: .95rem}
+    .controls{
+      display:grid; gap: 14px; margin-top:8px;
+    }
+    .row{ display:grid; gap:10px; grid-template-columns: 1fr 1fr; }
+    @media (max-width:560px){ .row{ grid-template-columns: 1fr; } }
+    label{
+      display:block; font-size:.95rem; color:var(--muted); margin-bottom:6px;
+    }
+    select, input[type="number"], input[type="range"]{
+      width:100%;
+      padding:12px 12px;
+      background:#0e1120;
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:10px;
+      outline:none;
+      transition:.2s border, .2s box-shadow;
+    }
+    input[type="range"]{ padding: 6px 0; }
+    select:focus, input:focus{
+      border-color: color-mix(in oklab, var(--accent) 70%, white 5%);
+      box-shadow: 0 0 0 4px rgba(77,215,180,.15);
+    }
+    .inline{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      padding:8px 12px; border-radius:999px; color:var(--muted);
+    }
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px }
+    button{
+      appearance:none; border:none; cursor:pointer;
+      padding:12px 16px; border-radius:10px; font-weight:700;
+      color:#0c1020; background: var(--accent);
+      box-shadow: 0 10px 24px rgba(77,215,180,.25);
+      transition: transform .06s ease, filter .2s ease;
+    }
+    button:hover{ filter:brightness(1.05) }
+    button:active{ transform: translateY(1px) }
+    button.secondary{
+      color: var(--text);
+      background: #14182a;
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: none;
+    }
+    button.danger{ background: var(--danger); color: white; box-shadow: 0 10px 24px rgba(255,107,107,.25)}
+    button.neutral{ background: #2a2f48; color: #e7ecff }
+    .display{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+      min-height: 340px; border-radius:12px; position:relative; overflow:hidden;
+      background: radial-gradient(900px 400px at 20% 120%, rgba(109,170,255,.08), transparent 60%),
+                  radial-gradient(1000px 400px at 100% -40%, rgba(77,215,180,.08), transparent 60%);
+      border: 1px dashed rgba(255,255,255,.08);
+    }
+    .big-number{
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(40px, 12vw, 120px);
+      line-height: 1;
+      letter-spacing: 1px;
+      text-shadow: 0 6px 18px rgba(0,0,0,.35);
+    }
+    .op{
+      position:absolute; top:12px; right:12px;
+      font-weight:700; color: var(--muted);
+      background: rgba(255,255,255,.06); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.08);
+    }
+    .progress{
+      position:absolute; bottom:0; left:0; height:4px; width:100%;
+      background: rgba(255,255,255,.06);
+    }
+    .progress > i{
+      display:block; height:100%; width:0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .1s linear;
+    }
+    .status{
+      display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px;
+      color: var(--muted);
+    }
+    .grid-answers{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px;
+    }
+    @media (max-width:560px){ .grid-answers{ grid-template-columns: 1fr 1fr } }
+    .answer-box{
+      background:#0d1122; border:1px solid rgba(255,255,255,.08); border-radius:10px;
+      padding:10px 12px; display:flex; align-items:center; justify-content:center; font-weight:700;
+      min-height:44px;
+    }
+    .result{
+      font-size: clamp(24px, 6vw, 48px); font-variant-numeric: tabular-nums; line-height:1.1;
+    }
+    .tag{
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); color: var(--muted);
+    }
+    footer{
+      padding: 8px clamp(14px, 3vw, 28px) 16px;
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      border-top:1px solid rgba(255,255,255,.06);
+      background: linear-gradient(0deg, rgba(255,255,255,.05), rgba(255,255,255,0));
+      color: var(--muted);
+      flex-wrap:wrap;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background:#0b0e18; border:1px solid rgba(255,255,255,.15);
+      padding:2px 6px; border-radius:6px; color:#cfe3ff;
+    }
+    .hidden{ display:none !important }
+
+    .wizard-steps{
+      display:flex; gap:8px; align-items:center; justify-content:center; margin: 12px 0 0;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background: rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.2);
+    }
+    .dot.active{ background: var(--accent); border-color: transparent; box-shadow: 0 0 0 4px rgba(77,215,180,.18) }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "lit": "https://cdn.jsdelivr.net/npm/lit@3/+esm"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <div class="card" id="app">
+      <header class="nav">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            Flash Anzan
+            <div><small class="muted">Treino responsivo para Soroban</small></div>
+          </div>
+        </div>
+        <div class="inline">
+          <span class="pill"><span aria-hidden="true">⏱️</span><b id="totalTime">—</b><small class="muted"> tempo total</small></span>
+          <span class="pill"><span aria-hidden="true">🔢</span><b id="countShown">0</b><small class="muted"> números</small></span>
+        </div>
+      </header>
+
+      <main>
+        <div class="layout">
+          <!-- Etapa 1: Configurações -->
+          <section class="panel" id="panel-config">
+            <h2>Configurações</h2>
+            <p class="muted">Escolha como deseja treinar. Você pode alternar a operação, dígitos, contagem de números e velocidade de exibição.</p>
+            <div class="controls">
+              <div class="row">
+                <div>
+                  <label for="operation">Operação</label>
+                  <select id="operation">
+                    <option value="add">Soma (+)</option>
+                    <option value="sub">Subtração (−)</option>
+                    <option value="mix">Misto (+/−)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="digits">Dígitos por número</label>
+                  <select id="digits">
+                    <option value="1">1 dígito</option>
+                    <option value="2" selected>2 dígitos</option>
+                    <option value="3">3 dígitos</option>
+                    <option value="4">4 dígitos</option>
+                    <option value="5">5 dígitos</option>
+                    <option value="6">6 dígitos</option>
+                    <option value="7">7 dígitos</option>
+                    <option value="8">8 dígitos</option>
+                    <option value="9">9 dígitos</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="count">Quantidade de números</label>
+                  <input id="count" type="number" min="1" max="200" step="1" value="10" />
+                </div>
+                <div>
+                  <label for="speed">Tempo de exibição por número: <b><span id="speedLabel">800</span> ms</b></label>
+                  <input id="speed" type="range" min="100" max="2000" step="50" value="800"/>
+                </div>
+              </div>
+              <div class="inline">
+                <label class="tag"><input type="checkbox" id="leadingZeros" /> permitir zeros à esquerda</label>
+                <label class="tag"><input type="checkbox" id="showRunningTotal" /> mostrar total parcial</label>
+                <label class="tag"><input type="checkbox" id="beep" /> som ao mudar</label>
+              </div>
+              <div class="btns">
+                <button id="start">Iniciar</button>
+                <button id="demo" class="secondary">Demo rápida</button>
+                <button id="reset" class="neutral">Reiniciar</button>
+              </div>
+            </div>
+            <div class="wizard-steps" aria-hidden="true">
+              <span class="dot active" id="dot-1"></span>
+              <span class="dot" id="dot-2"></span>
+              <span class="dot" id="dot-3"></span>
+            </div>
+          </section>
+
+          <!-- Etapa 2: Exibição -->
+          <section class="panel hidden" id="panel-display">
+            <h2>Exibição</h2>
+            <div class="display" id="display" aria-live="polite" aria-atomic="true">
+              <div class="op" id="opBadge">Pronto</div>
+              <div class="big-number" id="bigNumber">—</div>
+              <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+            </div>
+            <div class="status">
+              <div class="inline">
+                <span class="tag">Parcial: <b id="runningTotal">—</b></span>
+                <span class="tag">Posição: <b id="position">0/0</b></span>
+              </div>
+              <div class="inline">
+                <button id="pause" class="secondary">Pausar</button>
+                <button id="reveal" class="secondary">Mostrar resposta</button>
+              </div>
+            </div>
+            <div class="wizard-steps" aria-hidden="true">
+              <span class="dot" id="dot-1b"></span>
+              <span class="dot active" id="dot-2b"></span>
+              <span class="dot" id="dot-3b"></span>
+            </div>
+          </section>
+
+          <!-- Etapa 3: Resultado -->
+          <section class="panel hidden" id="panel-result">
+            <h2>Resultado</h2>
+            <div class="grid-answers">
+              <div>
+                <label>Resposta correta</label>
+                <div class="answer-box result" id="correct">—</div>
+              </div>
+              <div>
+                <label>Seu palpite</label>
+                <div class="inline">
+                  <input id="guess" type="number" inputmode="numeric" placeholder="Digite aqui" style="flex:1; min-height:44px; background:#0d1122; color:var(--text); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 12px;">
+                  <button id="check" class="secondary">Verificar</button>
+                </div>
+              </div>
+              <div>
+                <label>Situação</label>
+                <div class="answer-box" id="statusBox">—</div>
+              </div>
+            </div>
+            <div class="btns">
+              <button id="restart">Reiniciar</button>
+              <button id="exportSeq" class="secondary">Exportar sequência</button>
+            </div>
+            <div class="wizard-steps" aria-hidden="true">
+              <span class="dot" id="dot-1c"></span>
+              <span class="dot" id="dot-2c"></span>
+              <span class="dot active" id="dot-3c"></span>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer>
+        <div class="inline">
+          <span class="kbd">Espaço</span> iniciar/pausar
+          <span class="kbd">Enter</span> revelar/verificar
+          <button id="footerReset" class="secondary" style="margin-left:8px">Reiniciar</button>
+        </div>
+        <small>Tempo total: <b id="totalFooter">—</b></small>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module">
+    // Utilitários
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const clamp = (n,a,b)=> Math.max(a, Math.min(b, n));
+
+    // UI refs
+    const refs = {
+      panelConfig: $('#panel-config'),
+      panelDisplay: $('#panel-display'),
+      panelResult: $('#panel-result'),
+
+      op: $('#operation'),
+      digits: $('#digits'),
+      count: $('#count'),
+      speed: $('#speed'),
+      speedLabel: $('#speedLabel'),
+      leadingZeros: $('#leadingZeros'),
+      showRunningTotal: $('#showRunningTotal'),
+      beep: $('#beep'),
+      start: $('#start'),
+      demo: $('#demo'),
+      reset: $('#reset'),
+      display: $('#display'),
+      big: $('#bigNumber'),
+      opBadge: $('#opBadge'),
+      progress: $('#progress'),
+      runningTotal: $('#runningTotal'),
+      position: $('#position'),
+      pause: $('#pause'),
+      reveal: $('#reveal'),
+      correct: $('#correct'),
+      guess: $('#guess'),
+      check: $('#check'),
+      statusBox: $('#statusBox'),
+      restart: $('#restart'),
+      exportSeq: $('#exportSeq'),
+      totalTime: $('#totalTime'),
+      totalFooter: $('#totalFooter'),
+      countShown: $('#countShown'),
+      footerReset: $('#footerReset'),
+    };
+
+    // Estado
+    const state = {
+      seq: [],
+      ops: [],
+      index: 0,
+      total: 0,
+      running: false,
+      paused: false,
+      showing: false,
+      startTime: 0,
+      endTime: 0,
+      timerId: null,
+      progressRAF: 0,
+      progressStart: 0,
+      result: 0,
+      resultSoFar: 0,
+      settings(){
+        return {
+          op: refs.op.value,
+          digits: clamp(parseInt(refs.digits.value||2), 1, 9),
+          count: clamp(parseInt(refs.count.value||10), 1, 200),
+          speed: clamp(parseInt(refs.speed.value||800), 100, 2000),
+          leadingZeros: refs.leadingZeros.checked,
+          showRunningTotal: refs.showRunningTotal.checked,
+          beep: refs.beep.checked,
+        };
+      }
+    };
+
+    // Áudio procedural
+    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(f=880, dur=0.07){
+      try{
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.value = 0.0001;
+        o.connect(g).connect(audioCtx.destination);
+        o.start();
+        const now = audioCtx.currentTime;
+        g.gain.exponentialRampToValueAtTime(0.2, now+0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+        o.stop(now+dur+0.02);
+      }catch(e){}
+    }
+
+    // Geração
+    function randomNDigits(d, leadingZeros){
+      const min = leadingZeros ? 0 : Math.pow(10, d-1);
+      const max = Math.pow(10, d)-1;
+      if(d===1 && !leadingZeros) return Math.floor(Math.random()*9)+1;
+      return Math.floor(Math.random()*(max - min + 1)) + min;
+    }
+    function generateSequence({op, digits, count, leadingZeros}){
+      const seq = [];
+      const ops = [];
+      let total = 0;
+      for(let i=0;i<count;i++){
+        const n = randomNDigits(digits, leadingZeros);
+        if(op==='sub'){
+          if(i===0){ total = n; ops.push('+'); }
+          else { total -= n; ops.push('-'); }
+        }else if(op==='add'){
+          total += n; ops.push('+');
+        }else{
+          const sign = (i===0) ? '+' : (Math.random()<0.5 ? '+' : '-');
+          total += sign==='+' ? n : -n;
+          ops.push(sign);
+        }
+        seq.push(n);
+      }
+      return {seq, ops, result: total};
+    }
+
+    // Fluxo por etapas
+    function showStep(step){ // 1=config, 2=display, 3=result
+      refs.panelConfig.classList.toggle('hidden', step!==1);
+      refs.panelDisplay.classList.toggle('hidden', step!==2);
+      refs.panelResult.classList.toggle('hidden', step!==3);
+    }
+
+    // Execução
+    async function run(){
+      if(state.running) return;
+      const cfg = state.settings();
+      const {seq, ops, result} = generateSequence(cfg);
+      state.seq = seq;
+      state.ops = ops;
+      state.result = result;
+      state.index = 0;
+      state.running = true;
+      state.paused = false;
+      state.showing = false;
+      state.total = 0;
+      state.startTime = performance.now();
+      state.endTime = 0;
+
+      refs.correct.textContent = '—';
+      refs.statusBox.textContent = '—';
+      refs.guess.value = '';
+
+      updateBadges(cfg);
+      renderPosition();
+      refs.big.textContent = 'Pronto';
+      showStep(2);
+      await wait(200);
+      loopStep();
+    }
+
+    function updateBadges(cfg){
+      refs.opBadge.textContent = cfg.op==='add' ? 'Soma' : cfg.op==='sub' ? 'Subtração' : 'Misto';
+      refs.countShown.textContent = String(cfg.count);
+      refs.progress.style.width = '0%';
+      refs.runningTotal.textContent = '—';
+      refs.totalTime.textContent = '—';
+      refs.totalFooter.textContent = '—';
+    }
+
+    function renderPosition(){
+      const cfg = state.settings();
+      refs.position.textContent = `${Math.min(state.index, cfg.count)}/${cfg.count}`;
+    }
+
+    function showNumber(n, sign){
+      const s = (sign==='-' ? '− ' : (sign==='+' ? '' : '')) + String(n);
+      refs.big.textContent = s;
+    }
+
+    function animateProgress(ms){
+      cancelAnimationFrame(state.progressRAF);
+      const start = performance.now();
+      state.progressStart = start;
+      const step = (t)=>{
+        const elapsed = t - start;
+        const pct = Math.min(1, elapsed / ms);
+        refs.progress.style.width = (pct*100).toFixed(2)+'%';
+        if(pct<1 && state.running && !state.paused) state.progressRAF = requestAnimationFrame(step);
+      };
+      state.progressRAF = requestAnimationFrame(step);
+    }
+
+    function loopStep(){
+      if(!state.running) return;
+      const cfg = state.settings();
+      if(state.paused){ return; }
+      if(state.index >= cfg.count){
+        finish();
+        return;
+      }
+
+      let partial = 0;
+      for(let i=0;i<=state.index;i++){
+        const n = state.seq[i];
+        const sign = state.ops[i];
+        partial += (sign==='-'?-n:+n);
+      }
+      state.resultSoFar = partial;
+
+      const n = state.seq[state.index];
+      const sign = state.ops[state.index];
+      showNumber(n, sign);
+      if(cfg.beep) beep(660 + (state.index%3)*120, 0.05);
+      refs.runningTotal.textContent = cfg.showRunningTotal ? String(partial) : '—';
+      renderPosition();
+      refs.progress.style.width = '0%';
+      animateProgress(cfg.speed);
+
+      state.index++;
+      state.timerId = setTimeout(loopStep, cfg.speed);
+    }
+
+    function finish(){
+      state.running = false;
+      state.endTime = performance.now();
+      refs.big.textContent = '—';
+      refs.progress.style.width = '100%';
+      const totalMs = Math.round(state.endTime - state.startTime);
+      const txt = formatMs(totalMs);
+      refs.totalTime.textContent = txt;
+      refs.totalFooter.textContent = txt;
+
+      // Vai automaticamente para a última tela para digitar o resultado
+      refs.correct.textContent = 'Oculto';
+      refs.statusBox.textContent = 'Digite seu palpite e verifique.';
+      showStep(3);
+      setTimeout(()=> refs.guess.focus(), 50);
+    }
+
+    function reveal(){
+      // Revelar resposta e ir para painel de resultado (permanece na etapa 3)
+      if(state.running){
+        clearTimeout(state.timerId);
+        cancelAnimationFrame(state.progressRAF);
+        state.running = false;
+        state.endTime = performance.now();
+      }
+      const totalMs = state.endTime ? Math.round(state.endTime - state.startTime) : 0;
+      const txt = totalMs ? formatMs(totalMs) : '—';
+      refs.totalTime.textContent = txt;
+      refs.totalFooter.textContent = txt;
+      refs.correct.textContent = String(state.result ?? '—');
+      refs.statusBox.textContent = 'Resposta revelada.';
+      refs.big.textContent = String(state.result ?? '—');
+      refs.progress.style.width = '100%';
+      refs.position.textContent = `${state.index}/${state.settings().count}`;
+      showStep(3);
+      setTimeout(()=> refs.guess.focus(), 0);
+    }
+
+    function reset(){
+      clearTimeout(state.timerId);
+      cancelAnimationFrame(state.progressRAF);
+      Object.assign(state, {
+        seq: [], ops: [], index: 0, total: 0, running:false, paused:false, showing:false, startTime:0, endTime:0, result:0, resultSoFar:0
+      });
+      refs.big.textContent = '—';
+      refs.progress.style.width = '0%';
+      refs.runningTotal.textContent = '—';
+      refs.position.textContent = '0/0';
+      refs.opBadge.textContent = 'Pronto';
+      refs.correct.textContent = '—';
+      refs.statusBox.textContent = '—';
+      refs.totalTime.textContent = '—';
+      refs.totalFooter.textContent = '—';
+      refs.countShown.textContent = '0';
+      showStep(1);
+    }
+
+    function pauseToggle(){
+      if(!state.running) return;
+      state.paused = !state.paused;
+      refs.pause.textContent = state.paused ? 'Retomar' : 'Pausar';
+      if(state.paused){
+        clearTimeout(state.timerId);
+        cancelAnimationFrame(state.progressRAF);
+        refs.opBadge.textContent = 'Pausado';
+      }else{
+        refs.opBadge.textContent = state.settings().op==='add'?'Soma':state.settings().op==='sub'?'Subtração':'Misto';
+        animateProgress(state.settings().speed);
+        state.timerId = setTimeout(loopStep, 0);
+      }
+    }
+
+    function formatMs(ms){
+      const s = Math.floor(ms/1000);
+      const m = Math.floor(s/60);
+      const rems = s%60;
+      const remms = ms%1000;
+      const parts = [];
+      if(m>0) parts.push(`${m}m`);
+      parts.push(`${rems}s`);
+      parts.push(`${String(remms).padStart(3,'0')}ms`);
+      return parts.join(' ');
+    }
+
+    function checkGuess(){
+      const g = parseInt(refs.guess.value);
+      if(Number.isNaN(g)) return;
+      const correct = state.result;
+      const ok = g === correct;
+      refs.statusBox.textContent = ok ? 'Correto! 🎉' : `Incorreto. Diferença: ${g - correct}`;
+      refs.statusBox.style.color = ok ? 'var(--ok)' : 'var(--danger)';
+      if(refs.correct.textContent === 'Oculto'){
+        refs.correct.textContent = String(correct);
+      }
+    }
+
+    function demoQuick(){
+      refs.op.value = 'mix';
+      refs.digits.value = '2';
+      refs.count.value = '8';
+      refs.speed.value = '500';
+      refs.speedLabel.textContent = '500';
+      refs.showRunningTotal.checked = false;
+      run();
+    }
+
+    function exportSequence(){
+      if(!state.seq.length){
+        alert('Nenhuma sequência para exportar.');
+        return;
+      }
+      const lines = state.seq.map((n,i)=> `${state.ops[i]} ${n}`);
+      const txt = [
+        '# Flash Anzan - Sequência',
+        `Operação: ${refs.op.options[refs.op.selectedIndex].text}`,
+        `Dígitos: ${refs.digits.value}`,
+        `Quantidade: ${refs.count.value}`,
+        `Velocidade: ${refs.speed.value}ms`,
+        `Tempo total: ${refs.totalTime.textContent}`,
+        '',
+        ...lines,
+        '',
+        `Resultado: ${state.result}`
+      ].join('\n');
+      const blob = new Blob([txt], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'flash-anzan.txt';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+    }
+
+    // Eventos
+    refs.speed.addEventListener('input', ()=> refs.speedLabel.textContent = refs.speed.value);
+    refs.start.addEventListener('click', run);
+    refs.demo.addEventListener('click', demoQuick);
+    refs.reset.addEventListener('click', reset);
+    refs.footerReset.addEventListener('click', reset);
+    refs.pause.addEventListener('click', pauseToggle);
+    refs.reveal.addEventListener('click', reveal);
+    refs.check.addEventListener('click', checkGuess);
+    refs.restart.addEventListener('click', ()=>{ reset(); run(); });
+    refs.exportSeq.addEventListener('click', exportSequence);
+    refs.guess.addEventListener('keyup', (e)=>{ if(e.key==='Enter') checkGuess(); });
+
+    window.addEventListener('keydown', (e)=>{
+      if(e.repeat) return;
+      if(e.key===' '){
+        e.preventDefault();
+        const displayVisible = !refs.panelDisplay.classList.contains('hidden');
+        const onConfig = !refs.panelConfig.classList.contains('hidden');
+        if(displayVisible){
+          if(state.running) pauseToggle(); else run();
+        }else if(onConfig){
+          run();
+        }
+      }else if(e.key==='Enter'){
+        const onDisplay = !refs.panelDisplay.classList.contains('hidden');
+        const onResult = !refs.panelResult.classList.contains('hidden');
+        if(onDisplay){ reveal(); }
+        else if(onResult){ checkGuess(); }
+      }
+    });
+
+    // Acessibilidade: iniciar áudio após interação
+    document.addEventListener('pointerdown', ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); }, {once:true});
+
+    // Inicialização
+    reset();
+  </script>
+</body>
+</html>
