@@ -1,339 +1,574 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Markdown Offline</title>
-    
-    <!-- Tailwind CSS para estilização rápida e responsiva -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Biblioteca Marked.js para converter Markdown em HTML -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['Fira Code', 'monospace'],
-            },
-          }
-        }
-      }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Editor Markdown Online</title>
+<style>
+  :root{
+    --bg:#0f1116;
+    --panel:#131722;
+    --panel-2:#0d1320;
+    --border:#26314a;
+    --text:#e6eaf2;
+    --muted:#9aa4b2;
+    --accent:#5cc8ff;
+    --accent-2:#8affc1;
+    --shadow:rgba(0,0,0,0.35);
+  }
+  :root.light{
+    --bg:#f6f7fb;
+    --panel:#ffffff;
+    --panel-2:#f7f9ff;
+    --border:#d9e1ee;
+    --text:#0e1320;
+    --muted:#5b6575;
+    --accent:#1769ff;
+    --accent-2:#00bfa6;
+    --shadow:rgba(0,0,0,0.12);
+  }
 
-    <style>
-        /* Estilos personalizados */
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  /* Permite rolar a página para ver o resto do código HTML se o conteúdo extrapolar a viewport */
+  html, body { overflow:auto; }
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#0e121a 0%, #0b1020 100%);
+    color:var(--text);
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol';
+  }
+  :root.light body{
+    background:linear-gradient(180deg,#f9fbff 0%, #eef3ff 100%);
+  }
 
-        #editor-wrapper {
-            display: flex;
-            height: calc(100vh - 65px); /* Altura da tela menos a altura do header */
-        }
-        
-        #line-numbers {
-            font-family: 'Fira Code', monospace;
-            padding: 16px 8px 16px 16px;
-            font-size: 14px;
-            line-height: 1.5;
-            text-align: right;
-            user-select: none;
-            color: #9ca3af; /* gray-400 */
-            background-color: #f3f4f6; /* gray-100 */
-            transition: background-color 0.3s ease, color 0.3s ease;
-            overflow-y: hidden;
-            flex-shrink: 0;
-        }
+  header{
+    position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; gap:.5rem;
+    padding:.6rem .8rem;
+    background:linear-gradient(180deg, rgba(19,23,34,.85), rgba(13,19,32,.85));
+    backdrop-filter:saturate(1.2) blur(8px);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 4px 16px var(--shadow);
+  }
+  :root.light header{
+    background:linear-gradient(180deg, rgba(255,255,255,.8), rgba(250,252,255,.8));
+  }
 
-        .dark #line-numbers {
-            background-color: #1f2937; /* gray-800 */
-            color: #6b7280; /* gray-500 */
-        }
+  header .title{
+    font-weight:700; letter-spacing:.3px; margin-right:auto;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .logo{
+    width:22px; height:22px; border-radius:4px;
+    background:conic-gradient(from 210deg, var(--accent), var(--accent-2), #d2b3ff, var(--accent));
+    box-shadow:0 0 0 2px rgba(255,255,255,.06) inset, 0 2px 6px var(--shadow);
+  }
+  .btn{
+    appearance:none; border:1px solid var(--border);
+    background:linear-gradient(180deg,#182030,#121a2b);
+    color:var(--text); padding:.5rem .8rem; border-radius:8px;
+    font-size:.92rem; cursor:pointer; display:inline-flex; align-items:center; gap:.5rem;
+    transition:transform .05s ease, background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .btn:hover{ background:linear-gradient(180deg,#1c2638,#141e31); border-color:#35507a; }
+  .btn:active{ transform:translateY(1px) scale(.995); }
+  .btn.primary{ background:linear-gradient(180deg,#1a2540,#14213a); border-color:#44619b; }
+  .btn.toggle.active{ outline:2px solid rgba(92,200,255,.35); }
+  :root.light .btn{ background:linear-gradient(180deg,#ffffff,#f4f7ff); }
+  :root.light .btn:hover{ background:linear-gradient(180deg,#ffffff,#eaf0ff); border-color:#b7c6e6; }
+  :root.light .btn.primary{ background:linear-gradient(180deg,#ffffff,#e9f0ff); border-color:#9db7f2; }
 
-        #markdown-input {
-            font-family: 'Fira Code', monospace;
-            border: none;
-            outline: none;
-            resize: none;
-            width: 100%;
-            height: 100%;
-            font-size: 14px;
-            line-height: 1.5;
-            padding: 16px;
-            background-color: #f9fafb; /* gray-50 */
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
+  .toolbar-spacer{ width:1px; height:28px; background:var(--border); margin:0 .25rem; }
 
-        .dark #markdown-input {
-            background-color: #111827; /* gray-900 */
-            color: #d1d5db; /* gray-300 */
-        }
+  /* Tornar o contêiner principal rolável quando a janela é menor que o conteúdo */
+  .container{
+    position:relative;
+    margin-top:48px; /* altura aproximada do header */
+    height:calc(100vh - 48px);
+    overflow:auto;
+    display:grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+    grid-template-rows: 1fr;
+  }
+  .panel{
+    position:relative;
+    display:grid; grid-template-columns: 48px 1fr;
+    border-right:1px solid var(--border);
+    background:linear-gradient(180deg, #0d1320 0%, #0a1222 100%);
+    min-height:600px; /* garante espaço vertical para surgir a rolagem quando necessário */
+  }
+  .panel:last-child{ border-right:none; background:linear-gradient(180deg, #0b1324 0%, #0a1529 100%); }
+  :root.light .panel{ background:linear-gradient(180deg,#ffffff 0%, #f7f9ff 100%); }
+  :root.light .panel:last-child{ background:linear-gradient(180deg,#ffffff 0%, #f3f7ff 100%); }
 
-        /* Estilos para a área de visualização do Markdown */
-        #preview-output {
-             padding: 2rem 3rem;
-             height: calc(100vh - 65px);
-             overflow-y: auto;
-             background-color: #ffffff;
-        }
+  .gutter{
+    user-select:none;
+    color:var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size:13px; line-height:22px;
+    padding:.75rem .25rem .75rem .5rem;
+    border-right:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(18,22,32,.9), rgba(14,19,32,.9));
+    overflow:auto;
+  }
+  :root.light .gutter{
+    background:linear-gradient(180deg, rgba(245,248,255,.9), rgba(235,242,255,.9));
+  }
+  .editor-wrap{
+    position:relative; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .editor{
+    width:100%; height:100%;
+    resize:none; border:0; outline:0;
+    background:transparent; color:var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size:13px; line-height:22px;
+    padding:.75rem 1rem;
+    caret-color:#89b4ff;
+    white-space:pre;
+    overflow:auto;
+  }
+  .editor::selection{ background:rgba(137,180,255,.25); }
+  .statusbar{
+    height:28px; display:flex; align-items:center; gap:1rem;
+    padding:0 .75rem; border-top:1px solid var(--border);
+    color:var(--muted); font-size:12px; background:linear-gradient(180deg, #0c1424, #0a1322);
+  }
+  :root.light .statusbar{
+    background:linear-gradient(180deg,#f3f6ff,#eef3ff);
+  }
 
-        .dark #preview-output {
-             background-color: #111827; /* gray-900 */
-        }
+  .preview{
+    position:relative; overflow:auto;
+    padding:1rem 1.2rem;
+    white-space:normal;
+  }
+  .preview .doc{
+    max-width: 900px; margin:0 auto;
+    color:#e9edf5; line-height:1.6; font-size:16px;
+  }
+  :root.light .preview .doc{ color:#162036; }
+  .doc h1,.doc h2,.doc h3,.doc h4,.doc h5,.doc h6{
+    line-height:1.25; margin:1.1em 0 .5em; font-weight:700; color:#f2f6ff;
+  }
+  :root.light .doc h1,:root.light .doc h2,:root.light .doc h3,:root.light .doc h4,:root.light .doc h5,:root.light .doc h6{ color:#0e1320; }
+  .doc h1{ font-size:2rem; border-bottom:1px solid var(--border); padding-bottom:.3em; }
+  .doc h2{ font-size:1.6rem; border-bottom:1px solid var(--border); padding-bottom:.25em; }
+  .doc h3{ font-size:1.3rem; }
+  .doc p{ margin:.75em 0; }
+  .doc code{
+    background:#121b2c; border:1px solid #213454; padding:.15em .35em; border-radius:6px; font-family:inherit; font-size:.95em;
+  }
+  :root.light .doc code{ background:#f1f5ff; border-color:#d6e2f8; }
+  .doc pre{
+    background:#0e1728; border:1px solid #203350; border-radius:10px; padding:.8rem; overflow:auto;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .doc pre code{ background:transparent; border:0; padding:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.95em; white-space:pre; }
+  :root.light .doc pre{ background:#f5f8ff; border-color:#dfe8fa; box-shadow:none; }
+  .doc blockquote{
+    margin:1em 0; padding:.6em .9em; border-left:3px solid var(--accent);
+    background:rgba(92,200,255,.06); color:#dbecff; border-radius:6px;
+  }
+  :root.light .doc blockquote{ background:rgba(23,105,255,.06); color:#15325f; }
+  .doc ul, .doc ol{ padding-left:1.2rem; margin:.6em 0; }
+  .doc hr{ border:none; border-top:1px dashed var(--border); margin:1.2rem 0; }
+  .doc a{ color:#8cc7ff; text-decoration:none; border-bottom:1px dotted rgba(140,199,255,.5); }
+  :root.light .doc a{ color:#1769ff; border-bottom-color:rgba(23,105,255,.4); }
+  .doc img{
+    max-width:100%; display:block; margin:.75rem auto; border-radius:8px; border:1px solid var(--border);
+    background:#0b1324;
+  }
+  :root.light .doc img{ background:#f5f8ff; }
+  .doc table{ width:100%; border-collapse: collapse; margin:1rem 0; }
+  .doc th,.doc td{ border:1px solid var(--border); padding:.5rem .6rem; }
+  .doc th{ background:#0f1a30; }
+  :root.light .doc th{ background:#eef3ff; }
 
-        #preview-output h1, #preview-output h2, #preview-output h3, #preview-output h4 {
-            font-weight: 700;
-            margin-bottom: 0.5em;
-            margin-top: 1em;
-            border-bottom: 1px solid #e5e7eb; /* gray-200 */
-            padding-bottom: 0.3em;
-        }
-        .dark #preview-output h1, .dark #preview-output h2, .dark #preview-output h3, .dark #preview-output h4 {
-             border-bottom-color: #374151; /* gray-700 */
-        }
-        #preview-output h1 { font-size: 2.25em; }
-        #preview-output h2 { font-size: 1.75em; }
-        #preview-output h3 { font-size: 1.5em; }
-        #preview-output p { margin-bottom: 1em; line-height: 1.6; }
-        #preview-output a { color: #3b82f6; text-decoration: none; }
-        #preview-output a:hover { text-decoration: underline; }
-        #preview-output ul, #preview-output ol { margin-left: 2em; margin-bottom: 1em; }
-        #preview-output li { margin-bottom: 0.25em; }
-        #preview-output blockquote { 
-            border-left: 4px solid #d1d5db; /* gray-300 */
-            padding-left: 1em;
-            margin-left: 0;
-            color: #6b7280; /* gray-500 */
-        }
-        .dark #preview-output blockquote {
-             border-left-color: #4b5563; /* gray-600 */
-             color: #9ca3af; /* gray-400 */
-        }
-        #preview-output code { 
-            background-color: #f3f4f6; /* gray-100 */
-            padding: 0.2em 0.4em;
-            border-radius: 4px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.9em;
-        }
-        .dark #preview-output code {
-            background-color: #374151; /* gray-700 */
-        }
-        #preview-output pre {
-            background-color: #f3f4f6; /* gray-100 */
-            padding: 1em;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-         .dark #preview-output pre {
-            background-color: #1f2937; /* gray-800 */
-        }
-        #preview-output pre code {
-            background-color: transparent;
-            padding: 0;
-        }
+  .hidden-right .preview-panel{ display:none; }
+  .hidden-right{
+    grid-template-columns: minmax(320px, 1fr) 0 !important;
+  }
 
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
-    <header class="flex items-center justify-between h-[65px] px-6 shadow-md bg-white dark:bg-gray-800 transition-colors duration-300">
-        <!-- Menu Esquerdo -->
-        <div class="flex items-center gap-4">
-            <button id="import-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors">Importar</button>
-            <button id="toggle-view-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors">Visualizar</button>
-            <button id="save-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors">Salvar</button>
-        </div>
-        
-        <!-- Seletor de Tema -->
-        <div class="flex items-center">
-            <span class="text-sm text-gray-500 dark:text-gray-400 mr-3">Modo Escuro</span>
-            <button id="theme-toggle" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors bg-gray-200 dark:bg-gray-600 focus:outline-none">
-                <span class="sr-only">Toggle theme</span>
-                <span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform translate-x-1 dark:translate-x-6"></span>
-            </button>
-        </div>
-    </header>
+  .gutter::-webkit-scrollbar,
+  .preview::-webkit-scrollbar,
+  .editor::-webkit-scrollbar{ width:10px; height:10px; }
+  .gutter::-webkit-scrollbar-thumb,
+  .preview::-webkit-scrollbar-thumb,
+  .editor::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,#25324a,#1c2940);
+    border:2px solid transparent; background-clip:padding-box; border-radius:10px;
+  }
+  .gutter::-webkit-scrollbar-track,
+  .preview::-webkit-scrollbar-track,
+  .editor::-webkit-scrollbar-track{
+    background:transparent;
+  }
+  :root.light .gutter::-webkit-scrollbar-thumb,
+  :root.light .preview::-webkit-scrollbar-thumb,
+  :root.light .editor::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,#cfe0ff,#bcd1ff);
+  }
 
-    <main>
-        <!-- Wrapper do Editor com Números de Linha -->
-        <div id="editor-wrapper">
-            <div id="line-numbers">1</div>
-            <textarea id="markdown-input" spellcheck="false" placeholder="# Bem-vindo ao seu Editor Markdown!"></textarea>
-        </div>
-        
-        <!-- Área de Visualização (inicialmente oculta) -->
-        <div id="preview-output" class="hidden"></div>
-    </main>
-    
-    <!-- Input de arquivo oculto para importação -->
-    <input type="file" id="file-input" class="hidden" accept=".md,.markdown,.txt">
+  .drop-overlay{
+    position:fixed; inset:48px 0 0 0; pointer-events:none; opacity:0; transition:opacity .18s ease;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .drop-overlay.active{ opacity:1; }
+  .drop-box{
+    padding:1.2rem 1.5rem; border:2px dashed #4f6ea6; border-radius:12px;
+    background:linear-gradient(180deg, rgba(10,20,40,.8), rgba(12,18,32,.8));
+    color:#cfe3ff; font-weight:600; letter-spacing:.3px; text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.45);
+  }
+  :root.light .drop-box{
+    border-color:#9bb6ee; background:linear-gradient(180deg, rgba(245,248,255,.85), rgba(235,242,255,.85));
+    color:#234;
+  }
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Seleção de Elementos do DOM
-            const markdownInput = document.getElementById('markdown-input');
-            const previewOutput = document.getElementById('preview-output');
-            const editorWrapper = document.getElementById('editor-wrapper');
-            
-            const importBtn = document.getElementById('import-btn');
-            const fileInput = document.getElementById('file-input');
-            const toggleViewBtn = document.getElementById('toggle-view-btn');
-            const saveBtn = document.getElementById('save-btn');
-            
-            const themeToggle = document.getElementById('theme-toggle');
-            const lineNumbers = document.getElementById('line-numbers');
+  .header-right{
+    margin-left:auto; display:flex; align-items:center; gap:.5rem;
+  }
+  .btn.icon{
+    padding:.45rem; width:36px; height:36px; justify-content:center;
+  }
 
-            // Estado da Aplicação
-            let isPreview = false;
-            
-            const initialMarkdown = `
-# Bem-vindo ao Editor Markdown!
+  @media (max-width: 840px){
+    .container{ grid-template-columns: 1fr; }
+    .preview-panel{ display:none; }
+    .btn[data-action="toggle-preview"]{ display:none; }
+  }
+</style>
 
-Este é um editor de Markdown que funciona 100% no seu navegador.
-
-## Funcionalidades Principais
-
-- **Importar**: Carregue arquivos \`.md\` do seu computador.
-- **Visualizar/Editar**: Alterne entre a edição do texto e a visualização formatada.
-- **Salvar**: Baixe seu trabalho como um arquivo \`.md\`.
-- **Modo Escuro**: Alterne entre temas claro e escuro para conforto visual.
-- **Contador de Linhas**: Navegue pelo seu código com mais facilidade.
-
-## Exemplo de formatação
-
-Você pode usar **negrito**, _itálico_, \`código inline\`, e muito mais!
-
-\`\`\`javascript
-// Exemplo de um bloco de código
-function helloWorld() {
-  console.log("Olá, mundo!");
+<script type="importmap">
+{
+  "imports": {
+    "marked": "https://cdn.jsdelivr.net/npm/marked@12.0.2/lib/marked.esm.js",
+    "dompurify": "https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.es.mjs"
+  }
 }
+</script>
+</head>
+<body>
+<header>
+  <div class="title">
+    <div class="logo" aria-hidden="true"></div>
+    Editor Markdown Online
+  </div>
+
+  <button class="btn" data-action="import"><span>📥</span> Importar</button>
+  <button class="btn primary" data-action="save"><span>💾</span> Salvar</button>
+  <div class="toolbar-spacer"></div>
+  <button class="btn toggle" data-action="toggle-preview"><span>🪄</span> Visualizar</button>
+
+  <div class="header-right">
+    <button class="btn icon" id="themeToggle" title="Alternar tema" aria-label="Alternar tema claro/escuro">🌙</button>
+  </div>
+</header>
+
+<div class="container" id="layout">
+  <section class="panel editor-panel">
+    <aside class="gutter" id="gutter" aria-hidden="true"></aside>
+    <div class="editor-wrap">
+      <textarea id="editor" class="editor" spellcheck="false" aria-label="Editor Markdown"></textarea>
+      <div class="statusbar">
+        <span id="status-lines">0 linhas</span>
+        <span id="status-chars">0 chars</span>
+        <span id="status-format">UTF-8 • LF • MD</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel preview-panel">
+    <aside class="gutter" aria-hidden="true" style="opacity:.35;">MD</aside>
+    <div class="preview" id="preview">
+      <article class="doc" id="doc"></article>
+    </div>
+  </section>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-box">Solte o arquivo .md aqui para importar</div>
+</div>
+
+<script type="module">
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+
+/* Initial content */
+const sample = `# Bem-vindo ao Editor Markdown Online
+
+Use o painel da esquerda para digitar Markdown. O painel da direita mostra a visualização em tempo real.
+
+## Recursos
+- Importar arquivo .md (menu superior)
+- Salvar o conteúdo em um arquivo .md
+- Alternar visualização (Visualizar)
+- Numeração de linhas estilo editores de código
+- Renderiza títulos, listas, links, imagens, tabelas e blocos de código
+- Barras de rolagem horizontais para linhas muito compridas
+
+## Exemplo de código com linha longa
+\`\`\`js
+const msg = "Esta é uma linha propositalmente muito longa para demonstrar a barra de rolagem horizontal no editor e também dentro dos blocos de código da prévia. ".repeat(4);
+console.log(msg);
 \`\`\`
 
-> Citações também são suportadas e ficam ótimas!
+## Imagem
+Você pode inserir imagens com links. Caso o link não carregue, um placeholder será exibido:
 
-- Lista de itens 1
-- Lista de itens 2
-- Lista de itens 3
+![Exemplo](broken-image-will-be-replaced.png)
 
-Comece a digitar ou importe um arquivo para começar!
-            `.trim();
-            
-            markdownInput.value = initialMarkdown;
+> Dica: Arraste e solte um arquivo .md na janela para importar.
 
-            // --- Lógica de Linhas ---
-            const updateLineNumbers = () => {
-                // Previne erro caso o último caractere seja uma nova linha
-                const lines = markdownInput.value.split('\n');
-                const lineCount = lines.length;
-                
-                // **CORREÇÃO**: Adiciona <br> para que os números fiquem um abaixo do outro
-                lineNumbers.innerHTML = Array.from({ length: lineCount }, (_, i) => i + 1).join('<br>');
-                
-                // Sincroniza o scroll
-                lineNumbers.scrollTop = markdownInput.scrollTop;
-            };
+| Tarefa | Status |
+|-------:|:------:|
+| Editor | ✅ |
+| Preview | ✅ |
+| Salvar | ✅ |
+`;
 
-            markdownInput.addEventListener('input', updateLineNumbers);
-            markdownInput.addEventListener('scroll', () => {
-                lineNumbers.scrollTop = markdownInput.scrollTop;
-            });
-            // Atualiza em caso de redimensionamento da textarea (se houvesse)
-            new ResizeObserver(updateLineNumbers).observe(markdownInput);
+const editorEl = document.getElementById("editor");
+const gutterEl = document.getElementById("gutter");
+const docEl = document.getElementById("doc");
+const layoutEl = document.getElementById("layout");
+const dropOverlay = document.getElementById("dropOverlay");
 
+const btnImport = document.querySelector('[data-action="import"]');
+const btnSave = document.querySelector('[data-action="save"]');
+const btnToggle = document.querySelector('[data-action="toggle-preview"]');
+const themeToggle = document.getElementById("themeToggle");
 
-            // --- Lógica de Visualização/Edição ---
-            const updatePreview = () => {
-                // Usando a opção 'gfm' (GitHub Flavored Markdown) para melhor compatibilidade
-                previewOutput.innerHTML = marked.parse(markdownInput.value, { gfm: true, breaks: true });
-            };
+function setLocal(key, val){
+  try{ localStorage.setItem(key, val); }catch(e){}
+}
+function getLocal(key, fallback=""){
+  try{ return localStorage.getItem(key) ?? fallback; }catch(e){ return fallback; }
+}
 
-            toggleViewBtn.addEventListener('click', () => {
-                isPreview = !isPreview;
-                if (isPreview) {
-                    updatePreview();
-                    editorWrapper.classList.add('hidden');
-                    previewOutput.classList.remove('hidden');
-                    toggleViewBtn.textContent = 'Editar';
-                    toggleViewBtn.classList.remove('bg-blue-600', 'dark:bg-blue-500', 'hover:bg-blue-700');
-                    toggleViewBtn.classList.add('bg-green-600', 'dark:bg-green-500', 'hover:bg-green-700');
-                } else {
-                    editorWrapper.classList.remove('hidden');
-                    previewOutput.classList.add('hidden');
-                    toggleViewBtn.textContent = 'Visualizar';
-                    toggleViewBtn.classList.remove('bg-green-600', 'dark:bg-green-500', 'hover:bg-green-700');
-                    toggleViewBtn.classList.add('bg-blue-600', 'dark:bg-blue-500', 'hover:bg-blue-700');
-                    markdownInput.focus();
-                }
-            });
+/* Theme handling */
+const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme(theme){
+  const root = document.documentElement;
+  if(theme === 'light'){
+    root.classList.add('light');
+    themeToggle.textContent = '🌞';
+    themeToggle.setAttribute('aria-label','Alternar para modo escuro');
+  }else{
+    root.classList.remove('light');
+    themeToggle.textContent = '🌙';
+    themeToggle.setAttribute('aria-label','Alternar para modo claro');
+  }
+  setLocal('theme', theme);
+}
+const savedTheme = getLocal('theme', prefersDark ? 'dark' : 'light');
+applyTheme(savedTheme);
+themeToggle.addEventListener('click', ()=>{
+  const current = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+});
 
+/* Configure marked options */
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
 
-            // --- Lógica de Arquivos (Importar/Salvar) ---
-            importBtn.addEventListener('click', () => {
-                fileInput.click();
-            });
+/* Render helpers */
+function updateLineNumbers() {
+  const lines = editorEl.value.split("\n").length;
+  const nums = new Array(lines).fill(0).map((_,i)=> String(i+1)).join("\n");
+  gutterEl.textContent = nums;
+  document.getElementById("status-lines").textContent = lines + (lines === 1 ? " linha" : " linhas");
+  document.getElementById("status-chars").textContent = editorEl.value.length + " chars";
+  gutterEl.scrollTop = editorEl.scrollTop;
+  gutterEl.scrollLeft = editorEl.scrollLeft;
+}
 
-            fileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
+function renderMarkdown(md){
+  const rawHtml = marked.parse(md);
+  const safeHtml = DOMPurify.sanitize(rawHtml, {ADD_ATTR: ['target']});
+  docEl.innerHTML = safeHtml;
+  enhancePreview();
+}
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    markdownInput.value = e.target.result;
-                    updateLineNumbers();
-                    if(isPreview) {
-                        updatePreview();
-                    }
-                };
-                reader.readAsText(file);
-                // Limpa o valor para permitir importar o mesmo arquivo novamente
-                fileInput.value = '';
-            });
+/* Placeholder image generator (procedural) */
+function createPlaceholderDataURL(text="Imagem"){
+  const w = 800, h = 420;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
 
-            saveBtn.addEventListener('click', () => {
-                const content = markdownInput.value;
-                const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-                
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'documento.md';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
+  const g = ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0, "#10243e");
+  g.addColorStop(1, "#0b1730");
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,w,h);
 
+  for(let i=0;i<18;i++){
+    const x = Math.random()*w;
+    const y = Math.random()*h;
+    const r = 12+Math.random()*60;
+    ctx.fillStyle = `hsla(${180+Math.random()*120},70%,${35+Math.random()*25}%,0.16)`;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
 
-            // --- Lógica do Tema (Claro/Escuro) ---
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                // Persiste a preferência do tema (opcional)
-                if (document.documentElement.classList.contains('dark')) {
-                    localStorage.setItem('theme', 'dark');
-                } else {
-                    localStorage.setItem('theme', 'light');
-                }
-            });
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = "rgba(140,199,255,.65)";
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(w/2-64, h/2-64, 128, 128, 24);
+  } else {
+    ctx.rect(w/2-64, h/2-64, 128, 128);
+  }
+  ctx.stroke();
 
-            // Verifica a preferência de tema do usuário ao carregar
-            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-            
-            // Inicia os números de linha
-            updateLineNumbers();
-        });
-    </script>
+  ctx.fillStyle = "rgba(220,235,255,.9)";
+  ctx.font = "700 38px Inter, Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(text, w/2, h/2 + 8 + 90);
+
+  ctx.font = "500 16px Inter, Arial";
+  ctx.fillStyle = "rgba(220,235,255,.7)";
+  ctx.fillText("placeholder gerado no cliente", w/2, h - 26);
+
+  return c.toDataURL("image/png");
+}
+
+/* Enhance preview */
+function enhancePreview(){
+  docEl.querySelectorAll('a[href]').forEach(a=>{
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+  });
+
+  docEl.querySelectorAll('img').forEach(img=>{
+    let handled = false;
+    img.addEventListener('error', ()=>{
+      if(handled) return;
+      handled = true;
+      const label = img.getAttribute('alt') || 'Imagem';
+      img.src = createPlaceholderDataURL(label);
+    }, {once:true});
+  });
+}
+
+/* Live sync */
+function sync(){
+  updateLineNumbers();
+  renderMarkdown(editorEl.value);
+  setLocal("md-content", editorEl.value);
+}
+
+/* Editor events */
+editorEl.addEventListener("input", sync);
+editorEl.addEventListener("scroll", ()=>{
+  gutterEl.scrollTop = editorEl.scrollTop;
+  gutterEl.scrollLeft = editorEl.scrollLeft;
+});
+
+/* Initialize content */
+const initial = getLocal("md-content", "").trim().length ? getLocal("md-content") : sample;
+editorEl.value = initial;
+sync();
+
+/* Buttons */
+btnToggle.addEventListener("click", ()=>{
+  const hidden = layoutEl.classList.toggle("hidden-right");
+  btnToggle.classList.toggle("active", !hidden);
+});
+
+btnSave.addEventListener("click", ()=>{
+  const blob = new Blob([editorEl.value], {type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().replace(/[:.]/g,"-");
+  a.href = URL.createObjectURL(blob);
+  a.download = "documento-" + ts + ".md";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+});
+
+btnImport.addEventListener("click", ()=>{
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".md,text/markdown,text/plain";
+  input.addEventListener("change", async ()=>{
+    const file = input.files?.[0];
+    if(!file) return;
+    const text = await file.text();
+    editorEl.value = text;
+    sync();
+  }, {once:true});
+  input.click();
+});
+
+/* Drag and drop import */
+["dragenter","dragover"].forEach(evt=>{
+  window.addEventListener(evt, e=>{
+    e.preventDefault(); e.stopPropagation();
+    dropOverlay.classList.add("active");
+  });
+});
+["dragleave","drop"].forEach(evt=>{
+  window.addEventListener(evt, e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(evt === "drop"){
+      const f = e.dataTransfer?.files?.[0];
+      if(f){ f.text().then(t=>{ editorEl.value = t; sync(); }); }
+    }
+    dropOverlay.classList.remove("active");
+  });
+});
+
+/* Shortcuts */
+window.addEventListener("keydown", (e)=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
+    e.preventDefault();
+    btnSave.click();
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i"){
+    e.preventDefault();
+    btnImport.click();
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e"){
+    e.preventDefault();
+    btnToggle.click();
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b"){
+    e.preventDefault();
+    themeToggle.click();
+  }
+});
+
+/* Adjust gutter width by digits and sync horizontal scroll */
+function adjustGutterWidth(){
+  const lines = editorEl.value.split("\n").length;
+  const digits = String(lines).length;
+  const base = 10;
+  const charW = 8;
+  const min = 36;
+  const width = Math.max(min, base + digits*charW);
+  document.querySelectorAll('.panel').forEach(p=>{
+    p.style.gridTemplateColumns = width + "px 1fr";
+  });
+  gutterEl.scrollLeft = editorEl.scrollLeft;
+}
+const observer = new MutationObserver(adjustGutterWidth);
+observer.observe(gutterEl, {characterData:true, childList:true, subtree:true});
+window.addEventListener("resize", adjustGutterWidth);
+adjustGutterWidth();
+
+/* Garante rolagem vertical da página quando necessário (fallback) */
+(function ensurePageScroll(){
+  const check = ()=>{
+    const needsScroll = document.documentElement.scrollHeight > document.documentElement.clientHeight;
+    document.documentElement.style.overflowY = needsScroll ? 'auto' : 'auto';
+  };
+  new ResizeObserver(check).observe(document.body);
+  check();
+})();
+</script>
 </body>
 </html>
