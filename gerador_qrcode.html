@@ -1,1031 +1,230 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gerador de Código: QR / Data Matrix / Código de Barras</title>
-  <style>
-    :root{
-      --bg:#0e0f13;
-      --panel:#151823;
-      --panel-2:#1b2030;
-      --accent:#6dd3ff;
-      --accent-2:#76ffa7;
-      --text:#e9eef7;
-      --muted:#a7b0c3;
-      --danger:#ff6b6b;
-      --canvas-bg:#ffffff;
-      --shadow-pane:0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
-      --border-pane:1px solid rgba(255,255,255,0.08);
-      --header-grad:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      --app-bg: radial-gradient(1200px 600px at 10% -10%, #1a2040 0%, transparent 60%), radial-gradient(1000px 500px at 110% 10%, #102436 0%, transparent 60%), var(--bg);
-    }
-    /* Light theme overrides */
-    html[data-theme="light"]{
-      --bg:#f5f7fb;
-      --panel:#ffffff;
-      --panel-2:#f8f9fd;
-      --accent:#2563eb;
-      --accent-2:#10b981;
-      --text:#0e1726;
-      --muted:#5b6b82;
-      --danger:#e11d48;
-      --canvas-bg:#ffffff;
-      --shadow-pane: 0 18px 40px rgba(3,7,18,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
-      --border-pane:1px solid rgba(15,23,42,0.06);
-      --header-grad:linear-gradient(180deg, rgba(0,0,0,0.02), rgba(255,255,255,0.0));
-      --app-bg: radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,0.08) 0%, transparent 60%), radial-gradient(1000px 500px at 110% 10%, rgba(16,185,129,0.08) 0%, transparent 60%), var(--bg);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Código Universal</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- bwip-js for barcode generation -->
+    <script src="https://cdn.jsdelivr.net/npm/bwip-js"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: var(--app-bg);
-      color:var(--text);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      transition: background 0.3s ease, color 0.2s ease;
-    }
-    .app{
-      width:min(100%, 980px);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-      border:var(--border-pane);
-      border-radius:16px;
-      box-shadow: var(--shadow-pane);
-      overflow:hidden;
-      transition: background 0.3s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:18px 22px;
-      background:var(--header-grad);
-      border-bottom:var(--border-pane);
-    }
-    header h1{
-      font-size:18px;
-      margin:0;
-      letter-spacing:0.3px;
-    }
-    header .right{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    header .pill{
-      font-size:12px;
-      color:#0b1220;
-      background:linear-gradient(90deg, var(--accent), var(--accent-2));
-      padding:6px 10px;
-      border-radius:999px;
-      font-weight:700;
-      box-shadow:0 6px 18px rgba(109,211,255,0.35);
-      white-space:nowrap;
-    }
-    .theme-toggle{
-      appearance:none;
-      border:1px solid rgba(0,0,0,0.15);
-      background:var(--panel-2);
-      color:var(--text);
-      padding:8px 12px;
-      border-radius:999px;
-      font-weight:600;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      transition: transform .06s ease, filter .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
-    }
-    .theme-toggle:active{transform:translateY(1px) scale(0.99)}
-    .content{
-      display:grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap:0;
-      min-height:440px;
-    }
-    .controls{
-      padding:20px;
-      background:var(--panel);
-      border-right:var(--border-pane);
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      transition: background 0.3s ease, border-color 0.2s ease;
-    }
-    .group{display:flex;flex-direction:column;gap:8px}
-    label{font-size:13px;color:var(--muted)}
-    textarea, input[type="text"]{
-      width:100%;
-      padding:12px 12px;
-      border-radius:10px;
-      outline:none;
-      border:1px solid rgba(0,0,0,0.15);
-      background:var(--panel-2);
-      color:var(--text);
-      resize:vertical;
-      min-height:72px;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .btn{
-      appearance:none;
-      border:none;
-      border-radius:10px;
-      padding:12px 14px;
-      color:#0b1220;
-      background:linear-gradient(90deg, var(--accent), var(--accent-2));
-      font-weight:700;
-      cursor:pointer;
-      box-shadow:0 8px 22px rgba(109,211,255,0.25);
-      transition:transform .06s ease, filter .2s ease;
-    }
-    .btn:active{transform:translateY(1px) scale(0.99)}
-    .btn.secondary{
-      background:transparent;
-      color:var(--text);
-      border:1px solid rgba(0,0,0,0.18);
-      box-shadow:none;
-    }
-    .btn.warn{
-      background:linear-gradient(90deg, #ffb36b, #ff6b9b);
-      box-shadow:0 8px 22px rgba(255,140,120,0.25);
-      color:#0b1220;
-    }
-    select{
-      width:100%;
-      padding:12px;
-      border-radius:10px;
-      background:var(--panel-2);
-      color:var(--text);
-      border:1px solid rgba(0,0,0,0.15);
-      outline:none;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-    .preview{
-      position:relative;
-      padding:20px;
-      background:radial-gradient(600px 300px at 80% -10%, rgba(118,255,167,0.06), transparent 60%), var(--panel-2);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      transition: background 0.3s ease;
-    }
-    .stage{
-      width:min(520px, 92%);
-      aspect-ratio:1/1;
-      background:repeating-conic-gradient(from 0deg, rgba(0,0,0,0.04) 0deg 10deg, transparent 10deg 20deg);
-      border-radius:14px;
-      border:var(--border-pane);
-      display:grid;
-      place-items:center;
-      overflow:hidden;
-      position:relative;
-    }
-    canvas{
-      max-width:100%;
-      max-height:100%;
-      image-rendering: pixelated;
-      background:var(--canvas-bg);
-      border-radius:8px;
-    }
-    .watermark{
-      position:absolute;
-      bottom:8px;
-      right:12px;
-      font-size:11px;
-      color:rgba(0,0,0,0.45);
-      pointer-events:none;
-    }
-    html[data-theme="dark"] .watermark{ color: rgba(255,255,255,0.55); }
-    .tip{
-      font-size:12px;
-      color:var(--muted);
-    }
-    footer{
-      padding:12px 20px;
-      background:rgba(0,0,0,0.03);
-      border-top:var(--border-pane);
-      display:flex;
-      gap:8px;
-      justify-content:flex-end;
-    }
-    .grid-2{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-    @media (max-width: 880px){
-      .content{grid-template-columns:1fr}
-      .preview{order:-1}
-      .controls{border-right:none;border-bottom:var(--border-pane)}
-      .stage{width:100%}
-    }
-    /* Icon bubbles for theme button */
-    .theme-icon{
-      width:18px;height:18px;display:inline-grid;place-items:center;border-radius:50%;
-      background: radial-gradient(circle at 60% 40%, #ffd56b 0 60%, transparent 61%);
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
-    }
-    html[data-theme="dark"] .theme-icon{
-      background: radial-gradient(circle at 35% 35%, #ffd56b 0 55%, transparent 56%),
-                  radial-gradient(circle at 65% 65%, rgba(255,213,107,0.18) 0 25%, transparent 26%);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-    }
-  </style>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "tinyqueue": "https://cdn.jsdelivr.net/npm/tinyqueue@2.0.3/index.min.js"
-    }
-  }
-  </script>
-</head>
-<body>
-  <div class="app">
-    <header>
-      <h1>Gerador de Código: QR / Data Matrix / Código de Barras</h1>
-      <div class="right">
-        <button id="btn-theme" class="theme-toggle" aria-label="Alternar tema" title="Alternar tema">
-          <span class="theme-icon" aria-hidden="true"></span>
-          <span id="theme-label">Modo claro</span>
-        </button>
-        <div class="pill">Offline • Sem dependências de imagem</div>
-      </div>
-    </header>
-    <div class="content">
-      <section class="controls">
-        <div class="group">
-          <label for="text">Texto/Dados</label>
-          <textarea id="text" placeholder="Digite aqui o conteúdo a ser codificado"></textarea>
-          <div class="tip">Dica: URLs, números, texto livre. Utilize UTF-8.</div>
-        </div>
-        <div class="grid-2">
-          <div class="group">
-            <label for="type">Tipo</label>
-            <select id="type">
-              <option value="qr">QR Code</option>
-              <option value="dm">Data Matrix</option>
-              <option value="ean13">Código de Barras (EAN-13)</option>
-              <option value="code128">Código de Barras (Code 128)</option>
-            </select>
-          </div>
-          <div class="group">
-            <label for="size">Tamanho (px)</label>
-            <input id="size" type="text" inputmode="numeric" value="512" />
-          </div>
-        </div>
-        <div class="row">
-          <button id="btn-generate" class="btn">Gerar</button>
-          <button id="btn-clear" class="btn secondary">Limpar</button>
-        </div>
-        <div class="row">
-          <button id="btn-save" class="btn warn">Salvar imagem (PNG)</button>
-        </div>
-        <div class="tip">Requisitos atendidos: entrada de texto, seleção do tipo, botão de geração, área de visualização e salvar imagem.</div>
-      </section>
-      <section class="preview">
-        <div class="stage">
-          <canvas id="canvas" width="512" height="512" aria-label="Pré-visualização do código"></canvas>
-          <div class="watermark">Gerado localmente</div>
-        </div>
-      </section>
-    </div>
-    <footer>
-      <span class="tip">Este app utiliza algoritmos implementados no próprio JS para garantir funcionamento offline.</span>
-    </footer>
-  </div>
-
-  <script type="module">
-    // Util: seed-based PRNG for decorative noise if needed
-    function mulberry32(a){return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-    // Theme handling
-    const THEME_KEY = 'qrapp-theme';
-    const root = document.documentElement;
-    const btnTheme = document.getElementById('btn-theme');
-    const themeLabel = document.getElementById('theme-label');
-
-    function applyTheme(theme){
-      root.setAttribute('data-theme', theme);
-      themeLabel.textContent = theme === 'dark' ? 'Modo claro' : 'Modo escuro';
-      try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
-    }
-    function initTheme(){
-      let saved;
-      try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
-      if(!saved){
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        saved = prefersDark ? 'dark' : 'light';
-      }
-      applyTheme(saved);
-    }
-    btnTheme.addEventListener('click', ()=>{
-      const current = root.getAttribute('data-theme') || 'dark';
-      applyTheme(current === 'dark' ? 'light' : 'dark');
-    });
-    initTheme();
-
-    // Canvas helpers
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
-    function clearCanvas(w, h){
-      canvas.width = w;
-      canvas.height = h;
-      // subtle paper background
-      const grd = ctx.createLinearGradient(0,0,0,h);
-      grd.addColorStop(0, "#ffffff");
-      grd.addColorStop(1, "#f3f6fa");
-      ctx.fillStyle = grd;
-      ctx.fillRect(0,0,w,h);
-    }
-
-    function downloadCanvasPNG(filename = 'codigo.png'){
-      const a = document.createElement('a');
-      a.download = filename;
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-    }
-
-    // --- QR Code generator (Version auto up to small sizes), ECC-L only for simplicity
-    // Implementation adapted from public domain references (compact) written from scratch here
-    // Alphanumeric/byte mode; we encode bytes (UTF-8) and use numeric/alnum shortcuts when possible.
-    // ECC Reed-Solomon GF(256) with primitive 0x11d
-    // Due to complexity, we support versions 1..6 (21..41 modules) with ECC level M (~15%) to balance capacity.
-    // This covers most typical uses and keeps the code concise.
-
-    // UTF-8 encode
-    function toUTF8Bytes(str){
-      return new TextEncoder().encode(str);
-    }
-
-    // Galois Field GF(256) tables for RS
-    const GF256_EXP = new Uint8Array(512);
-    const GF256_LOG = new Uint8Array(256);
-    (function initGF(){
-      let x = 1;
-      for(let i=0;i<255;i++){
-        GF256_EXP[i]=x;
-        GF256_LOG[x]=i;
-        x<<=1;
-        if(x&0x100)x^=0x11d;
-      }
-      for(let i=255;i<512;i++) GF256_EXP[i]=GF256_EXP[i-255];
-    })();
-    function gfMul(a,b){ return a&&b ? GF256_EXP[GF256_LOG[a]+GF256_LOG[b]] : 0 }
-    function rsGeneratorPoly(deg){
-      let poly = new Uint8Array([1]);
-      for(let d=0; d<deg; d++){
-        const next = new Uint8Array(poly.length+1);
-        for(let i=0;i<poly.length;i++){
-          next[i] ^= gfMul(poly[i], GF256_EXP[d]);
-          next[i+1] ^= poly[i];
+    <style>
+        /* Applying the Inter font to the body */
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        poly = next;
-      }
-      return poly;
-    }
-    function rsComputeECC(data, eccLen){
-      const gen = rsGeneratorPoly(eccLen);
-      const res = new Uint8Array(eccLen);
-      for(let i=0;i<data.length;i++){
-        const factor = data[i] ^ res[0];
-        res.copyWithin(0,1);
-        res[res.length-1]=0;
-        if(factor!==0){
-          for(let j=0;j<gen.length;j++){
-            res[j] ^= gfMul(gen[j], factor);
-          }
-        }
-      }
-      return res;
-    }
+    </style>
 
-    // QR parameters for versions 1..6, ECC level M (from QR spec tables)
-    const QR_PARAMS = [
-      [21, 26, 10, 1, 16, 0, 0], // v1-M
-      [25, 44, 16, 1, 28, 0, 0], // v2-M
-      [29, 70, 26, 1, 44, 0, 0], // v3-M
-      [33, 100, 18, 2, 32, 0, 0], // v4-M
-      [37, 134, 24, 2, 43, 0, 0], // v5-M
-      [41, 172, 16, 4, 68, 0, 0], // v6-M
-    ];
-
-    function chooseQRVersion(byteLen){
-      const caps = [14,26,42,62,84,106];
-      for(let v=1; v<=6; v++){
-        if(byteLen <= caps[v-1]) return v;
-      }
-      return -1;
-    }
-
-    function bitsPush(bits, val, length){
-      for(let i=length-1;i>=0;i--) bits.push((val>>i)&1);
-    }
-
-    function makeQR(dataStr){
-      const data = toUTF8Bytes(dataStr);
-      const version = chooseQRVersion(data.length);
-      if(version < 0) throw new Error('Dados muito longos para QR (versões 1-6).');
-      const params = QR_PARAMS[version-1];
-      const size = params[0];
-
-      const bits = [];
-      bitsPush(bits, 0b0100, 4);
-      bitsPush(bits, data.length, 8);
-      for(const b of data) bitsPush(bits, b, 8);
-      const totalCodewords = params[1];
-      const totalDataCodewords = totalCodewords - params[2];
-      const totalDataBits = totalDataCodewords * 8;
-      const remaining = totalDataBits - bits.length;
-      const terminator = Math.min(4, Math.max(0, remaining));
-      bitsPush(bits, 0, terminator);
-      while(bits.length % 8 !== 0) bits.push(0);
-      const dataBytes = [];
-      for(let i=0;i<bits.length;i+=8){
-        let v=0; for(let j=0;j<8;j++) v=(v<<1)|bits[i+j];
-        dataBytes.push(v);
-      }
-      let padToggle = true;
-      while(dataBytes.length < totalDataCodewords){
-        dataBytes.push(padToggle ? 0xEC : 0x11);
-        padToggle = !padToggle;
-      }
-
-      const eccPerBlock = params[2];
-      const blocks = params[3];
-      const codewordsPerBlock = params[4];
-      const dataBlocks = [];
-      let idx=0;
-      for(let b=0;b<blocks;b++){
-        dataBlocks.push(dataBytes.slice(idx, idx+codewordsPerBlock));
-        idx += codewordsPerBlock;
-      }
-      const eccBlocks = dataBlocks.map(db => rsComputeECC(Uint8Array.from(db), eccPerBlock));
-
-      const interleaved = [];
-      for(let i=0;i<codewordsPerBlock;i++){
-        for(let b=0;b<blocks;b++){
-          if(i < dataBlocks[b].length) interleaved.push(dataBlocks[b][i]);
-        }
-      }
-      for(let i=0;i<eccPerBlock;i++){
-        for(let b=0;b<blocks;b++){
-          interleaved.push(eccBlocks[b][i]);
-        }
-      }
-
-      const m = Array.from({length:size}, ()=>Array(size).fill(null));
-      placeFinder(m, 0,0);
-      placeFinder(m, size-7,0);
-      placeFinder(m, 0,size-7);
-      drawRect(m, 7,0,1,7,0); drawRect(m, 0,7,7,1,0);
-      drawRect(m, size-8,0,1,7,0); drawRect(m, size-7,7,7,1,0);
-      drawRect(m, 7,size-7,1,7,0); drawRect(m, 0,size-8,7,1,0);
-      for(let i=8;i<size-8;i++){
-        m[6][i] = i%2===0 ? 1:0;
-        m[i][6] = i%2===0 ? 1:0;
-      }
-      const alignmentCenters = {
-        1: [],
-        2: [6,18],
-        3: [6,22],
-        4: [6,26],
-        5: [6,30],
-        6: [6,34]
-      }[version];
-      if(alignmentCenters.length){
-        const centers = alignmentCenters;
-        for(let i=0;i<centers.length;i++){
-          for(let j=0;j<centers.length;j++){
-            const r=centers[i], c=centers[j];
-            if((r<=8 && c<=8) || (r<=8 && c>=size-9) || (r>=size-9 && c<=8)) continue;
-            placeAlignment(m, c, r);
-          }
-        }
-      }
-      for(let i=0;i<9;i++){
-        if(m[8][i]===null) m[8][i] = 'R';
-        if(m[i][8]===null) m[i][8] = 'R';
-      }
-      for(let i=size-8;i<size;i++){
-        if(m[8][i]===null) m[8][i] = 'R';
-        if(m[i][8]===null) m[i][8] = 'R';
-      }
-      const maskFn = (r,c)=>((r+c)%2)===0;
-      let dirUp = true;
-      let col = size-1;
-      let bitIdx = 0;
-      const bitsStream = [];
-      for(const b of interleaved){
-        for(let i=7;i>=0;i--) bitsStream.push((b>>i)&1);
-      }
-      while(col>0){
-        if(col===6) col--;
-        for(let i=0;i<size;i++){
-          const row = dirUp ? (size-1 - i) : i;
-          for(let j=0;j<2;j++){
-            const c = col - j;
-            if(m[row][c] === null){
-              const bit = bitsStream[bitIdx++] ?? 0;
-              m[row][c] = maskFn(row,c) ? bit^1 : bit;
+    <script>
+        // Customizing Tailwind CSS for dark mode and fonts
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
             }
-          }
         }
-        col -= 2;
-        dirUp = !dirUp;
-      }
-      const formatInfo = getFormatInfoBits(0b01, 0b000);
-      applyFormatInfo(m, formatInfo);
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-      return m;
-    }
+    <!-- Main application container -->
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl min-h-screen flex flex-col justify-center">
+        
+        <!-- Header section with title and theme toggle -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">Gerador de Código</h1>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900" aria-label="Alternar tema">
+                <i class="fas fa-sun text-xl text-yellow-500"></i>
+                <i class="fas fa-moon text-xl text-blue-300 hidden"></i>
+            </button>
+        </header>
 
-    function drawRect(m, x,y,w,h,val){
-      for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++) if(m[r]===undefined?false:true) if(m[r][c]===null) m[r][c]=val;
-    }
-    function placeFinder(m, x,y){
-      for(let r=0;r<7;r++){
-        for(let c=0;c<7;c++){
-          const inCore = r>=2&&r<=4&&c>=2&&c<=4;
-          const onEdge = r===0||r===6||c===0||c===6;
-          m[y+r][x+c] = (inCore||onEdge)?1:0;
-        }
-      }
-    }
-    function placeAlignment(m, x,y){
-      for(let r=-2;r<=2;r++){
-        for(let c=-2;c<=2;c++){
-          const rr=y+r, cc=x+c;
-          const v = (Math.max(Math.abs(r),Math.abs(c))===2 || (r===0&&c===0)) ? 1 : 0;
-          m[rr][cc]=v;
-        }
-      }
-    }
-    function getFormatInfoBits(ecc, mask){
-      let data = (ecc<<3)|mask;
-      let v = data<<10;
-      const poly = 0b10100110111;
-      for(let i=14;i>=10;i--){
-        if((v>>i)&1) v ^= (poly << (i-10));
-      }
-      let format = ((data<<10) | v) ^ 0b101010000010010;
-      const bits = [];
-      for(let i=14;i>=0;i--) bits.push((format>>i)&1);
-      return bits;
-    }
-    function applyFormatInfo(m, bits){
-      const size = m.length;
-      const coords1 = [];
-      for(let i=0;i<=5;i++) coords1.push([8,i]);
-      coords1.push([8,7],[8,8],[7,8]);
-      for(let i=5;i>=0;i--) coords1.push([i,8]);
-      const coords2 = [];
-      for(let i=0;i<8;i++) coords2.push([size-1-i,8]);
-      for(let i=0;i<7;i++) coords2.push([8,size-7+i]);
-      for(let i=0;i<15;i++){
-        const [r1,c1] = coords1[i];
-        if(m[r1][c1]==='R' || m[r1][c1]===null) m[r1][c1] = bits[i];
-        const [r2,c2] = coords2[i];
-        if(m[r2][c2]==='R' || m[r2][c2]===null) m[r2][c2] = bits[i];
-      }
-    }
+        <!-- Main content card -->
+        <main class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+            
+            <!-- Input Section -->
+            <div class="space-y-4">
+                <div>
+                    <label for="content" class="block text-sm font-medium mb-1">Conteúdo</label>
+                    <textarea id="content" rows="4" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Digite o texto ou dados aqui..."></textarea>
+                </div>
+                <div>
+                    <label for="code-type" class="block text-sm font-medium mb-1">Tipo de Código</label>
+                    <select id="code-type" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="qrcode">QR Code</option>
+                        <option value="datamatrix">Data Matrix</option>
+                        <option value="ean13">Código de Barras (EAN-13)</option>
+                        <option value="code128">Código de Barras (Code 128)</option>
+                    </select>
+                </div>
+                <!-- Error message placeholder -->
+                <p id="error-message" class="text-red-500 text-sm h-5 font-medium"></p>
+            </div>
 
-    function renderMatrixToCanvas(matrix, size){
-      const n = matrix.length;
-      const quiet = 4;
-      const scale = Math.floor(size / (n + 2*quiet));
-      const actualSize = (n + 2*quiet) * scale;
-      clearCanvas(actualSize, actualSize);
-      ctx.fillStyle = '#000';
-      for(let r=0;r<n;r++){
-        for(let c=0;c<n;c++){
-          if(matrix[r][c]===1){
-            ctx.fillRect((c+quiet)*scale, (r+quiet)*scale, scale, scale);
-          }
-        }
-      }
-    }
+            <!-- Action Buttons -->
+            <div class="mt-6">
+                <button id="generate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
+                    Gerar Código
+                </button>
+            </div>
 
-    // --- Data Matrix (ECC200)
-    const DM_SIZES = [
-      [10,10,3,5],[12,12,5,7],[14,14,8,10],[16,16,12,12],[18,18,18,14],[20,20,22,18]
-    ];
-    const DM_EXP = new Uint8Array(512);
-    const DM_LOG = new Uint8Array(256);
-    (function initDMGF(){
-      let x=1;
-      for(let i=0;i<255;i++){
-        DM_EXP[i]=x;
-        DM_LOG[x]=i;
-        x<<=1;
-        if(x&0x100)x^=0x12d;
-      }
-      for(let i=255;i<512;i++) DM_EXP[i]=DM_EXP[i-255];
-      DM_LOG[0]=0;
-    })();
-    function dmMul(a,b){ return a&&b ? DM_EXP[(DM_LOG[a]+DM_LOG[b])%255]:0 }
-    function dmRSGen(deg){
-      let poly = new Uint8Array([1]);
-      for(let d=1; d<=deg; d++){
-        const next = new Uint8Array(poly.length+1);
-        for(let i=0;i<poly.length;i++){
-          next[i] ^= dmMul(poly[i], DM_EXP[d]);
-          next[i+1] ^= poly[i];
-        }
-        poly = next;
-      }
-      return poly;
-    }
-    function dmRSEncode(data, eccLen){
-      const gen = dmRSGen(eccLen);
-      const res = new Uint8Array(eccLen);
-      for(let i=0;i<data.length;i++){
-        const k = data[i] ^ res[0];
-        res.copyWithin(0,1);
-        res[res.length-1]=0;
-        if(k){
-          for(let j=0;j<gen.length;j++){
-            res[j] ^= dmMul(gen[j], k);
-          }
-        }
-      }
-      return res;
-    }
-    function dmChooseSize(len){
-      for(const s of DM_SIZES){
-        if(len <= s[2]) return s;
-      }
-      return null;
-    }
-    function dmEncodeASCII(str){
-      const bytes = Array.from(toUTF8Bytes(str));
-      const out = [];
-      let i=0;
-      while(i<bytes.length){
-        const a = bytes[i];
-        const b = bytes[i+1];
-        if(b!==undefined && a>=48&&a<=57 && b>=48&&b<=57){
-          const v = (a-48)*10 + (b-48);
-          out.push(130 + v);
-          i+=2;
-        } else {
-          out.push(a+1);
-          i++;
-        }
-      }
-      out.push(129);
-      return out;
-    }
-    function dmPlace(matrix){
-      const rows = matrix.length;
-      const cols = matrix[0].length;
-      let r = 4, c = 0;
+            <!-- Output Section for the generated code -->
+            <div id="output" class="mt-8 flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg min-h-[200px] transition">
+                <p class="text-gray-500 dark:text-gray-400 text-center">A imagem do código gerado aparecerá aqui.</p>
+            </div>
 
-      function moduleSet(rr, cc, val){
-        matrix[(rr+rows)%rows][(cc+cols)%cols] = val;
-      }
-      function moduleUnset(rr, cc){
-        return matrix[(rr+rows)%rows][(cc+cols)%cols] === null;
-      }
-      function placeUtah(r,c, codeword){
-        const coords = [
-          [r-2,c-2],[r-2,c-1],[r-1,c-2],[r-1,c-1],
-          [r-1,c],[r,c-2],[r,c-1],[r,c]
-        ];
-        for(let i=0;i<8;i++){
-          const [rr,cc]=coords[i];
-          if(moduleUnset(rr,cc)){
-            const v = (codeword >> (7-i)) & 1;
-            moduleSet(rr,cc, v);
-          }
-        }
-      }
-      function corner1(codeword){
-        const coords = [[rows-1,0],[rows-1,1],[rows-1,2],[0,cols-2],[0,cols-1],[1,cols-1],[2,cols-1],[3,cols-1]];
-        for(let i=0;i<8;i++){
-          const [rr,cc]=coords[i];
-          if(moduleUnset(rr,cc)) moduleSet(rr,cc, (codeword>>(7-i))&1);
-        }
-      }
-      function corner2(codeword){
-        const coords = [[rows-3,0],[rows-2,0],[rows-1,0],[0,cols-4],[0,cols-3],[0,cols-2],[0,cols-1],[1,cols-1]];
-        for(let i=0;i<8;i++){
-          const [rr,cc]=coords[i];
-          if(moduleUnset(rr,cc)) moduleSet(rr,cc, (codeword>>(7-i))&1);
-        }
-      }
-      function corner3(codeword){
-        const coords = [[rows-3,0],[rows-2,0],[rows-1,0],[0,cols-2],[0,cols-1],[1,cols-1],[2,cols-1],[3,cols-1]];
-        for(let i=0;i<8;i++){
-          const [rr,cc]=coords[i];
-          if(moduleUnset(rr,cc)) moduleSet(rr,cc, (codeword>>(7-i))&1);
-        }
-      }
-      function corner4(codeword){
-        const coords = [[rows-1,0],[rows-1,cols-1],[0,cols-3],[0,cols-2],[0,cols-1],[1,cols-3],[1,cols-2],[1,cols-1]];
-        for(let i=0;i<8;i++){
-          const [rr,cc]=coords[i];
-          if(moduleUnset(rr,cc)) moduleSet(rr,cc, (codeword>>(7-i))&1);
-        }
-      }
+            <!-- Save Button (initially hidden) -->
+            <div class="mt-6">
+                 <button id="save-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800 hidden">
+                    <i class="fas fa-download mr-2"></i>Salvar como PNG
+                </button>
+            </div>
+        </main>
+    </div>
 
-      const code = matrix._codewords;
-      let cwIndex = 0;
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element Selection ---
+            const themeToggle = document.getElementById('theme-toggle');
+            const contentInput = document.getElementById('content');
+            const codeTypeSelect = document.getElementById('code-type');
+            const generateBtn = document.getElementById('generate-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const outputDiv = document.getElementById('output');
+            const errorMessage = document.getElementById('error-message');
+            const sunIcon = themeToggle.querySelector('.fa-sun');
+            const moonIcon = themeToggle.querySelector('.fa-moon');
 
-      while(true){
-        if(r===rows && c===0) corner1(code[cwIndex++]);
-        if(r===rows-2 && c===0 && (cols%4)!==0) corner2(code[cwIndex++]);
-        if(r===rows-2 && c===0 && (cols%8)===4) corner3(code[cwIndex++]);
-        if(r===rows+4 && c===2 && (cols%8)===0) corner4(code[cwIndex++]);
+            // --- Theme Management ---
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                }
+            };
 
-        do{
-          if(r<rows && c>=0 && moduleUnset(r,c)){
-            placeUtah(r,c, code[cwIndex++]);
-          }
-          r -= 2; c += 2;
-        } while(r >= 0 && c < cols);
-        r += 1; c += 3;
+            // Check for saved theme in localStorage on page load
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
 
-        do{
-          if(r>=0 && c<cols && moduleUnset(r,c)){
-            placeUtah(r,c, code[cwIndex++]);
-          }
-          r += 2; c -= 2;
-        } while(r < rows && c >= 0);
-        r += 3; c += 1;
+            // Event listener for theme toggle button
+            themeToggle.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                const newTheme = isDark ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
 
-        if(cwIndex >= code.length) break;
-      }
-    }
+            // --- Input Validation ---
+            function validateInput(content, type) {
+                if (!content.trim()) {
+                    return { valid: false, message: 'O campo de conteúdo não pode estar vazio.' };
+                }
 
-    function makeDataMatrix(str){
-      const enc = dmEncodeASCII(str);
-      const size = dmChooseSize(enc.length);
-      if(!size) throw new Error('Dados muito longos para Data Matrix (tamanhos implementados).');
-      const [rows, cols, dataCW, eccCW] = size;
-      let data = enc.slice(0, dataCW);
-      while(data.length < dataCW){
-        const r = 149 * (data.length + 1) % 253 + 1;
-        data.push((129 + r) % 254);
-      }
-      const ecc = Array.from(dmRSEncode(Uint8Array.from(data), eccCW));
-      const codewords = data.concat(ecc);
+                if (type === 'ean13') {
+                    // EAN-13 must be 12 or 13 digits. The library calculates the checksum if 12 are provided.
+                    if (!/^\d{12,13}$/.test(content)) {
+                        return { valid: false, message: 'EAN-13 deve conter 12 ou 13 dígitos numéricos.' };
+                    }
+                }
+                // For other types, a non-empty check is sufficient for this app.
+                return { valid: true, message: '' };
+            }
 
-      const m = Array.from({length: rows}, ()=>Array(cols).fill(null));
-      m._codewords = codewords;
+            // --- Code Generation ---
+            generateBtn.addEventListener('click', () => {
+                const content = contentInput.value;
+                const type = codeTypeSelect.value;
 
-      dmPlace(m);
+                // Clear previous state
+                errorMessage.textContent = '';
+                outputDiv.innerHTML = '';
+                saveBtn.classList.add('hidden');
 
-      for(let c=0;c<cols;c++){
-        m[0][c] = c%2===0 ? 1:0;
-        m[rows-1][c] = 1;
-      }
-      for(let r=0;r<rows;r++){
-        m[r][0] = 1;
-        m[r][cols-1] = r%2===0 ? 1:0;
-      }
+                // Validate input before proceeding
+                const validation = validateInput(content, type);
+                if (!validation.valid) {
+                    errorMessage.textContent = validation.message;
+                    outputDiv.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">A imagem do código gerado aparecerá aqui.</p>';
+                    return;
+                }
 
-      return m;
-    }
+                // Create a canvas element to draw the code on
+                const canvas = document.createElement('canvas');
+                
+                // Set options for the bwip-js library
+                let options = {
+                    bcid: type,         // Barcode type (e.g., 'qrcode', 'ean13')
+                    text: content,      // Text to encode
+                    scale: 3,           // 3x scaling factor for clarity
+                    height: 10,         // Bar-code height in millimeters
+                    includetext: true,  // Show human-readable text below the bars
+                    textxalign: 'center', // Center the text
+                    backgroundcolor: 'ffffff', // Explicitly set white background
+                };
 
-    function renderDMToCanvas(matrix, size){
-      const nRows = matrix.length;
-      const nCols = matrix[0].length;
-      const quiet = 2;
-      const scale = Math.floor(Math.min(size/(nCols+2*quiet), size/(nRows+2*quiet)));
-      const w = (nCols + 2*quiet) * scale;
-      const h = (nRows + 2*quiet) * scale;
-      clearCanvas(w,h);
-      ctx.fillStyle = '#000';
-      for(let r=0;r<nRows;r++){
-        for(let c=0;c<nCols;c++){
-          if(matrix[r][c]===1){
-            ctx.fillRect((c+quiet)*scale, (r+quiet)*scale, scale, scale);
-          }
-        }
-      }
-    }
+                // Adjust options for 2D codes (QR Code, Data Matrix)
+                if (type === 'qrcode' || type === 'datamatrix') {
+                    options.height = 25; // Make square codes larger
+                    options.width = 25;
+                    delete options.includetext; // Text is not typically shown inside 2D codes
+                }
 
-    // --- Barcodes: EAN-13 and Code 128 (subset B)
-    const EAN_LEFT_A = {
-      0:"0001101",1:"0011001",2:"0010011",3:"0111101",4:"0100011",5:"0110001",6:"0101111",7:"0111011",8:"0110111",9:"0001011"
-    };
-    const EAN_LEFT_B = {
-      0:"0100111",1:"0110011",2:"0011011",3:"0100001",4:"0011101",5:"0111001",6:"0000101",7:"0010001",8:"0001001",9:"0010111"
-    };
-    const EAN_RIGHT = {
-      0:"1110010",1:"1100110",2:"1101100",3:"1000010",4:"1011100",5:"1001110",6:"1010000",7:"1000100",8:"1001000",9:"1110100"
-    };
-    const EAN_L_PATTERNS = [
-      "AAAAAA","AABABB","AABBAB","AABBBA","ABAABB","ABBAAB","ABBBAA","ABABAB","ABABBA","ABBABA"
-    ];
-    function ean13Checksum(d12){
-      const arr = d12.split('').map(n=>+n);
-      let sum=0;
-      for(let i=0;i<12;i++){
-        sum += arr[i] * ((i%2===0)?1:3);
-      }
-      const mod = sum%10;
-      return (10-mod)%10;
-    }
-    function renderEAN13(data, width, height){
-      let digits = data.replace(/\D/g,'');
-      if(digits.length<12) throw new Error('EAN-13 precisa de ao menos 12 dígitos.');
-      digits = digits.slice(0,12);
-      const check = ean13Checksum(digits);
-      const full = digits + check;
+                try {
+                    // Use bwip-js to draw the barcode onto the canvas
+                    bwipjs.toCanvas(canvas, options);
+                    
+                    // Display the generated canvas
+                    outputDiv.appendChild(canvas);
+                    
+                    // Show the save button
+                    saveBtn.classList.remove('hidden');
 
-      const first = +full[0];
-      const pattern = EAN_L_PATTERNS[first];
+                } catch (e) {
+                    // Catch any errors from the library (e.g., bad EAN-13 checksum)
+                    console.error(e);
+                    const userMessage = e.message || String(e);
+                    errorMessage.textContent = `Erro: ${userMessage}. Verifique o conteúdo.`;
+                    outputDiv.innerHTML = '<p class="text-red-400 text-center">Ocorreu um erro ao gerar o código.</p>';
+                }
+            });
 
-      let bars = "101";
-      for(let i=1;i<=6;i++){
-        const d = +full[i];
-        const side = pattern[i-1];
-        bars += (side==='A' ? EAN_LEFT_A[d] : EAN_LEFT_B[d]);
-      }
-      bars += "01010";
-      for(let i=7;i<=12;i++){
-        const d = +full[i];
-        bars += EAN_RIGHT[d];
-      }
-      bars += "101";
+            // --- Save as PNG ---
+            saveBtn.addEventListener('click', () => {
+                const canvas = outputDiv.querySelector('canvas');
+                if (!canvas) return;
 
-      clearCanvas(width,height);
-      const n = bars.length;
-      const scale = Math.max(1, Math.floor(width / n));
-      const xStart = Math.floor((width - n*scale)/2);
-      ctx.fillStyle = '#000';
-      for(let i=0;i<n;i++){
-        const isBar = bars[i]==='1';
-        if(isBar){
-          const isGuard = (i<=2) || (i>=45 && i<=49) || (i>=n-3);
-          const barH = isGuard ? Math.floor(height*0.92) : Math.floor(height*0.82);
-          ctx.fillRect(xStart + i*scale, 0, scale, barH);
-        }
-      }
-      ctx.fillStyle = '#111';
-      ctx.font = `${Math.floor(height*0.1)}px ui-sans-serif`;
-      ctx.textBaseline = 'bottom';
-      const textY = height - Math.floor(height*0.04);
-      const leftText = full.slice(0,1);
-      const centerLeft = full.slice(1,7);
-      const centerRight = full.slice(7,13);
-      ctx.textAlign = 'left';
-      ctx.fillText(leftText, xStart - Math.floor(10), textY);
-      ctx.textAlign = 'center';
-      ctx.fillText(centerLeft, xStart + (3 + 42)/2*scale, textY);
-      ctx.fillText(centerRight, xStart + (50 + 42)/2*scale, textY);
-    }
+                const type = codeTypeSelect.value;
+                const link = document.createElement('a');
+                // Create a filename like "qrcode-1678886400000.png"
+                link.download = `${type}-${Date.now()}.png`;
+                // Convert canvas to a PNG image data URL
+                link.href = canvas.toDataURL('image/png');
+                // Trigger the download
+                link.click();
+            });
+        });
+    </script>
 
-    const CODE128_PATTERNS = [
-      "11011001100","11001101100","11001100110","10010011000","10010001100","10001001100",
-      "10011001000","10011000100","10001100100","11001001000","11001000100","11000100100",
-      "10110011100","10011011100","10011001110","10111001100","10011101100","10011100110",
-      "11001110010","11001011100","11001001110","11011100100","11001110100","11101101110",
-      "11101001100","11100101100","11100100110","11101100100","11100110100","11100110010",
-      "11011011000","11011000110","11000110110","10100011000","10001011000","10001000110",
-      "10110001000","10001101000","10001100010","11010001000","11000101000","11000100010",
-      "10110111000","10110001110","10001101110","10111011000","10111000110","10001110110",
-      "11101110110","11010001110","11000101110","11011101000","11011100010","11011101110",
-      "11101011000","11101000110","11100010110","11101101000","11101100010","11100011010",
-      "11101111010","11001000010","11110001010","10100110000","10100001100","10010110000",
-      "10010000110","10000101100","10000100110","10110010000","10110000100","10011010000",
-      "10011000010","10000110100","10000110010","11000010010","11001010000","11110111010",
-      "11000010100","10001111010","10100111100","10010111100","10010011110","10111100100",
-      "10011110100","10011110010","11110100100","11110010100","11110010010","11011011110",
-      "11011110110","11110110110","10101111000","10100011110","10001011110","10111101000",
-      "10111100010","11110101000","11110100010","10111011110","10111101110","11101011110",
-      "11110101110","11010000100","11010010000","11010011100","1100011101011"
-    ];
-    const CODE128_START_B = 104;
-    function code128Checksum(values){
-      let sum = values[0];
-      for(let i=1;i<values.length;i++){
-        sum += values[i] * i;
-      }
-      return sum % 103;
-    }
-    function renderCode128(str, width, height){
-      const codes = [];
-      for(const ch of str){
-        const code = ch.charCodeAt(0);
-        if(code<32 || code>126) throw new Error('Code 128-B suporta caracteres ASCII 32..126.');
-        codes.push(code - 32);
-      }
-      const values = [CODE128_START_B, ...codes];
-      const check = code128Checksum(values);
-      const patternIdx = [...values, check, 106];
-      const bars = patternIdx.map(i=>CODE128_PATTERNS[i]).join('');
-      const n = bars.length;
-      const scale = Math.max(1, Math.floor(width / n));
-      const w = n * scale;
-      clearCanvas(w, height);
-      ctx.fillStyle='#000';
-      for(let i=0;i<n;i++){
-        if(bars[i]==='1'){
-          ctx.fillRect(i*scale, 0, scale, height*0.85);
-        }
-      }
-      ctx.fillStyle='#111';
-      ctx.font = `${Math.floor(height*0.12)}px ui-sans-serif`;
-      ctx.textAlign='center';
-      ctx.textBaseline='bottom';
-      ctx.fillText(str, w/2, height-2);
-    }
-
-    // UI bindings
-    const $text = document.getElementById('text');
-    const $type = document.getElementById('type');
-    const $size = document.getElementById('size');
-    const $btnGen = document.getElementById('btn-generate');
-    const $btnClear = document.getElementById('btn-clear');
-    const $btnSave = document.getElementById('btn-save');
-
-    function parseSize(){
-      const v = Math.max(64, Math.min(2048, parseInt($size.value,10)||512));
-      $size.value = String(v);
-      return v;
-    }
-
-    function generate(){
-      const txt = $text.value.trim();
-      const t = $type.value;
-      const px = parseSize();
-      if(!txt){
-        clearCanvas(px, px);
-        ctx.fillStyle = '#555';
-        ctx.font = '16px ui-sans-serif';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText('Digite algum texto para gerar o código.', canvas.width/2, canvas.height/2);
-        return;
-      }
-      try{
-        if(t==='qr'){
-          const m = makeQR(txt);
-          renderMatrixToCanvas(m, px);
-        } else if(t==='dm'){
-          const m = makeDataMatrix(txt);
-          renderDMToCanvas(m, px);
-        } else if(t==='ean13'){
-          const w = px, h = Math.floor(px*0.42);
-          renderEAN13(txt, w, h);
-        } else if(t==='code128'){
-          const w = px, h = Math.floor(px*0.36);
-          renderCode128(txt, w, h);
-        }
-      }catch(err){
-        clearCanvas(px, px);
-        ctx.fillStyle = '#d33';
-        ctx.font = 'bold 16px ui-sans-serif';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText('Erro: ' + err.message, canvas.width/2, canvas.height/2);
-      }
-    }
-
-    $btnGen.addEventListener('click', generate);
-    $btnClear.addEventListener('click', ()=>{
-      $text.value = '';
-      generate();
-    });
-    $btnSave.addEventListener('click', ()=>{
-      const typeLabel = {
-        qr:'QR', dm:'DM', ean13:'EAN13', code128:'CODE128'
-      }[$type.value];
-      downloadCanvasPNG(`codigo_${typeLabel}.png`);
-    });
-    $type.addEventListener('change', generate);
-    $size.addEventListener('change', generate);
-
-    // Initial state with placeholder graphic
-    (function initial(){
-      clearCanvas(512,512);
-      const rng = mulberry32(42);
-      const img = ctx.createImageData(canvas.width, canvas.height);
-      for(let i=0;i<img.data.length;i+=4){
-        const v = 245 + Math.floor(rng()*10);
-        img.data[i]=img.data[i+1]=img.data[i+2]=v;
-        img.data[i+3]=255;
-      }
-      ctx.putImageData(img,0,0);
-      ctx.fillStyle='#111';
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      ctx.font='bold 22px ui-sans-serif';
-      ctx.fillText('Gerador de Códigos', canvas.width/2, canvas.height/2 - 10);
-      ctx.font='14px ui-sans-serif';
-      ctx.fillText('Digite o texto e clique em Gerar', canvas.width/2, canvas.height/2 + 18);
-    })();
-  </script>
 </body>
 </html>
