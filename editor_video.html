@@ -150,7 +150,6 @@
                     margin: { item: 10, axis: 5 },
                     orientation: 'bottom',
                     onMove: function(item, callback) {
-                        // Garante que os itens não possam ter tempo de início negativo
                         item.start = Math.max(0, item.start);
                         item.end = item.start + (item.end - item.start);
                         callback(item);
@@ -160,7 +159,6 @@
                     onRemove: updateTotalDuration,
                 };
                 timeline = new vis.Timeline(timelineContainer, items, groups, options);
-                // Adiciona a barra de tempo vermelha
                 timeline.addCustomTime(0, 'playback-time');
             }
             
@@ -195,64 +193,94 @@
                 }
             }
 
+            // CORREÇÃO 1: Adiciona barra de progresso e usa FileReader
             function addMediaToBin(file) {
                 const mediaId = `media-${mediaCounter++}`;
-                const objectURL = URL.createObjectURL(file);
                 let mediaElement;
-                
+
                 const mediaItemHTML = `
-                    <div id="${mediaId}" class="media-bin-item bg-gray-700 p-2 rounded-lg flex items-center space-x-3">
-                        <div class="w-16 h-10 bg-black rounded flex items-center justify-center text-gray-500">
-                           <i class="fas fa-spinner fa-spin"></i>
+                    <div id="${mediaId}" class="media-bin-item bg-gray-700 p-2 rounded-lg flex flex-col space-y-2">
+                        <div class="flex items-center space-x-3 w-full">
+                            <div class="w-16 h-10 bg-black rounded flex items-center justify-center text-gray-500 flex-shrink-0 thumbnail-container">
+                               <i class="fas fa-film"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium truncate">${file.name}</p>
+                                <p class="text-xs text-gray-400">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                            <button class="add-to-timeline-btn hidden flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 p-2 rounded" title="Adicionar à timeline">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium truncate">${file.name}</p>
+                        <div class="w-full bg-gray-600 rounded-full h-1.5 progress-bar-container">
+                            <div class="bg-indigo-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
-                        <button class="add-to-timeline-btn hidden flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 p-2 rounded" title="Adicionar à timeline">
-                            <i class="fas fa-plus"></i>
-                        </button>
                     </div>
                 `;
                 mediaBin.append(mediaItemHTML);
                 const mediaDiv = $(`#${mediaId}`);
-                
-                const onMediaLoaded = (duration) => {
-                    mediaAssets[mediaId] = {
-                        element: mediaElement,
-                        type: file.type,
-                        duration: duration,
-                        name: file.name
-                    };
-                    mediaDiv.find('.add-to-timeline-btn').removeClass('hidden');
+                const progressBarContainer = mediaDiv.find('.progress-bar-container');
+                const progressBar = mediaDiv.find('.progress-bar');
+                const thumbnailContainer = mediaDiv.find('.thumbnail-container');
+
+                const reader = new FileReader();
+
+                reader.onprogress = function(event) {
+                    if (event.lengthComputable) {
+                        const percentLoaded = Math.round((event.loaded / event.total) * 100);
+                        progressBar.css('width', percentLoaded + '%');
+                    }
                 };
 
-                if (file.type.startsWith('video/')) {
-                    mediaElement = document.createElement('video');
-                    mediaElement.preload = 'metadata';
-                    mediaElement.muted = true; // Vídeos no preview são sempre mudos
-                    mediaElement.onloadedmetadata = () => {
-                        onMediaLoaded(mediaElement.duration * 1000);
-                        generateVideoThumbnail(mediaElement, mediaId);
+                reader.onload = function(event) {
+                    progressBarContainer.hide();
+                    const objectURL = event.target.result;
+
+                    const onMediaLoaded = (duration) => {
+                        mediaAssets[mediaId] = {
+                            element: mediaElement,
+                            type: file.type,
+                            duration: duration,
+                            name: file.name
+                        };
+                        mediaDiv.find('.add-to-timeline-btn').removeClass('hidden');
                     };
-                } else if (file.type.startsWith('image/')) {
-                    mediaElement = document.createElement('img');
-                    mediaElement.onload = () => {
-                        const thumbnailImg = `<img src="${objectURL}" class="w-full h-full object-cover rounded">`;
-                        mediaDiv.find('.w-16.h-10').html(thumbnailImg);
-                        onMediaLoaded(5000); // Duração padrão de 5s para imagens
-                    };
-                } else if (file.type.startsWith('audio/')) {
-                    mediaElement = document.createElement('audio');
-                    mediaElement.preload = 'metadata';
-                    mediaElement.onloadedmetadata = () => {
-                        mediaDiv.find('.w-16.h-10').html(`<i class="fas fa-volume-up fa-2x text-teal-300"></i>`);
-                        onMediaLoaded(mediaElement.duration * 1000);
-                    };
-                }
-                
-                if (mediaElement) {
-                    mediaElement.src = objectURL;
-                }
+
+                    if (file.type.startsWith('video/')) {
+                        mediaElement = document.createElement('video');
+                        mediaElement.preload = 'metadata';
+                        mediaElement.muted = true;
+                        mediaElement.onloadedmetadata = () => {
+                            onMediaLoaded(mediaElement.duration * 1000);
+                            generateVideoThumbnail(mediaElement, mediaId);
+                        };
+                    } else if (file.type.startsWith('image/')) {
+                        mediaElement = document.createElement('img');
+                        mediaElement.onload = () => {
+                            const thumbnailImg = `<img src="${objectURL}" class="w-full h-full object-cover rounded">`;
+                            thumbnailContainer.html(thumbnailImg);
+                            onMediaLoaded(5000);
+                        };
+                    } else if (file.type.startsWith('audio/')) {
+                        mediaElement = document.createElement('audio');
+                        mediaElement.preload = 'metadata';
+                        mediaElement.onloadedmetadata = () => {
+                            thumbnailContainer.html(`<i class="fas fa-volume-up fa-2x text-teal-300"></i>`);
+                            onMediaLoaded(mediaElement.duration * 1000);
+                        };
+                    }
+
+                    if (mediaElement) {
+                        mediaElement.src = objectURL;
+                    }
+                };
+
+                reader.onerror = function() {
+                    console.error("O arquivo não pôde ser lido.");
+                    mediaDiv.remove();
+                };
+
+                reader.readAsDataURL(file);
             }
             
             function generateVideoThumbnail(video, mediaId) {
@@ -264,10 +292,10 @@
                     thumbCtx.drawImage(video, 0, 0, thumbCanvas.width, thumbCanvas.height);
                     const thumbnailUrl = thumbCanvas.toDataURL('image/jpeg');
                     const thumbnailImg = `<img src="${thumbnailUrl}" class="w-full h-full object-cover rounded">`;
-                    $(`#${mediaId}`).find('.w-16.h-10').html(thumbnailImg);
-                    video.currentTime = 0; // Reseta o tempo do vídeo
+                    $(`#${mediaId}`).find('.thumbnail-container').html(thumbnailImg);
+                    video.currentTime = 0;
                 };
-                video.currentTime = 1; // Pega o thumbnail no segundo 1
+                video.currentTime = 1;
             }
 
             mediaBin.on('click', '.add-to-timeline-btn', function() {
@@ -277,6 +305,7 @@
 
                 if (!asset || isNaN(asset.duration) || asset.duration <= 0) {
                     console.error("Duração de mídia inválida para:", asset.name);
+                    alert("Não foi possível adicionar a mídia: duração inválida ou zero.");
                     return;
                 }
 
@@ -299,7 +328,7 @@
                     content: asset.name,
                     start: startTime,
                     end: startTime + asset.duration,
-                    mediaId: mediaId, // Referência ao asset original
+                    mediaId: mediaId,
                     type: 'range'
                 };
                 items.add(newItem);
@@ -310,7 +339,7 @@
             // --- MÓDULO 2: MOTOR DE PRÉ-VISUALIZAÇÃO (PLAYBACK) ---
             
             let isPlaying = false;
-            let currentTime = 0; // em milissegundos
+            let currentTime = 0;
             let lastFrameTime = 0;
             let animationFrameId;
             let totalDuration = 0;
@@ -320,28 +349,42 @@
             const totalDurationEl = $('#total-duration');
             const playbackProgress = $('#playback-progress');
 
+            // CORREÇÃO 2: Função de formatação de tempo mais robusta
             function formatTime(ms) {
-                const seconds = Math.floor(ms / 1000);
-                const min = Math.floor(seconds / 60);
-                const sec = seconds % 60;
-                return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+                if (isNaN(ms) || ms < 0) {
+                    return '00:00';
+                }
+                const totalSeconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             }
 
+            // CORREÇÃO 2: Função de atualização de duração mais robusta
             function updateTotalDuration() {
                 const allItems = items.get();
-                if (allItems.length === 0) {
-                    totalDuration = 0;
-                } else {
-                    totalDuration = Math.max(...allItems.map(item => item.end));
+                let newTotalDuration = 0;
+                if (allItems.length > 0) {
+                    const validEnds = allItems.map(item => item.end).filter(end => typeof end === 'number' && !isNaN(end));
+                    if (validEnds.length > 0) {
+                        newTotalDuration = Math.max(...validEnds);
+                    }
                 }
+                totalDuration = newTotalDuration;
                 totalDurationEl.text(formatTime(totalDuration));
+
+                const currentWindow = timeline.getWindow();
+                if (totalDuration > currentWindow.end || allItems.length === 0) {
+                    timeline.setWindow(0, Math.max(totalDuration, 60000));
+                }
             }
 
             function togglePlayPause() {
+                if (totalDuration <= 0) return; // Não inicia se não houver conteúdo
                 isPlaying = !isPlaying;
                 if (isPlaying) {
                     if (currentTime >= totalDuration) {
-                        currentTime = 0; // Reinicia se estiver no fim
+                        currentTime = 0;
                     }
                     playPauseBtn.find('i').removeClass('fa-play').addClass('fa-pause');
                     lastFrameTime = performance.now();
@@ -354,6 +397,7 @@
                 }
             }
 
+            // CORREÇÃO 2: Loop de renderização com proteção contra divisão por zero
             function renderLoop(now) {
                 if (!isPlaying) return;
 
@@ -361,17 +405,16 @@
                 lastFrameTime = now;
                 currentTime += delta;
 
-                if (currentTime > totalDuration) {
+                if (currentTime >= totalDuration) {
                     currentTime = totalDuration;
-                    togglePlayPause(); // Pausa no final
+                    togglePlayPause();
                 }
 
-                // Atualiza a UI
                 timeline.setCustomTime(currentTime, 'playback-time');
                 currentTimeEl.text(formatTime(currentTime));
-                playbackProgress.css('width', `${(currentTime / totalDuration) * 100}%`);
+                const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+                playbackProgress.css('width', `${progressPercentage}%`);
                 
-                // Lógica de renderização
                 drawFrame();
                 
                 animationFrameId = requestAnimationFrame(renderLoop);
@@ -384,24 +427,25 @@
 
                 const visualItem = activeItems
                     .filter(item => mediaAssets[item.mediaId]?.type.startsWith('video/') || mediaAssets[item.mediaId]?.type.startsWith('image/'))
-                    .sort((a,b) => groups.get(b.group).value - groups.get(a.group).value)[0]; // Pega o do topo
+                    .sort((a,b) => groups.get(b.group).value - groups.get(a.group).value)[0];
 
                 if (visualItem) {
                     const asset = mediaAssets[visualItem.mediaId];
                     const element = asset.element;
 
                     if (asset.type.startsWith('video/')) {
-                        // Define o tamanho do canvas para o tamanho do vídeo na primeira vez
-                        if (canvas.width !== element.videoWidth) {
+                        if (canvas.width !== element.videoWidth || canvas.height !== element.videoHeight) {
                             canvas.width = element.videoWidth;
                             canvas.height = element.videoHeight;
                         }
                         const videoTime = (currentTime - visualItem.start) / 1000;
-                        element.currentTime = videoTime;
+                        if (Math.abs(element.currentTime - videoTime) > 0.1) { // Evita seeks desnecessários
+                            element.currentTime = videoTime;
+                        }
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
                     } else if (asset.type.startsWith('image/')) {
-                        if (canvas.width !== element.naturalWidth) {
+                        if (canvas.width !== element.naturalWidth || canvas.height !== element.naturalHeight) {
                             canvas.width = element.naturalWidth;
                             canvas.height = element.naturalHeight;
                         }
@@ -409,7 +453,6 @@
                         ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
                     }
                 } else {
-                    // Se não houver item visual, limpa o canvas
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
             }
