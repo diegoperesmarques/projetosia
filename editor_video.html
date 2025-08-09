@@ -30,6 +30,7 @@
             color: white;
             border-radius: 4px;
             padding: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .vis-item.vis-selected {
             border-color: #f59e0b;
@@ -43,6 +44,14 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+        }
+        
+        /* --- CORREÇÃO: Estilo para a agulha (playhead) --- */
+        /* Deixa a agulha de playback mais visível */
+        .vis-custom-time.playback-time {
+            background-color: #f59e0b; /* Amarelo/Laranja para destaque */
+            width: 3px;
+            z-index: 10; /* Garante que fique sobre os itens */
         }
     </style>
 </head>
@@ -159,6 +168,7 @@
                     onRemove: updateTotalDuration,
                 };
                 timeline = new vis.Timeline(timelineContainer, items, groups, options);
+                // Adiciona a agulha (custom time bar) com um ID específico
                 timeline.addCustomTime(0, 'playback-time');
             }
             
@@ -193,7 +203,6 @@
                 }
             }
 
-            // CORREÇÃO 1: Adiciona barra de progresso e usa FileReader
             function addMediaToBin(file) {
                 const mediaId = `media-${mediaCounter++}`;
                 let mediaElement;
@@ -259,7 +268,7 @@
                         mediaElement.onload = () => {
                             const thumbnailImg = `<img src="${objectURL}" class="w-full h-full object-cover rounded">`;
                             thumbnailContainer.html(thumbnailImg);
-                            onMediaLoaded(5000);
+                            onMediaLoaded(5000); // Imagens têm duração padrão de 5s
                         };
                     } else if (file.type.startsWith('audio/')) {
                         mediaElement = document.createElement('audio');
@@ -295,7 +304,8 @@
                     $(`#${mediaId}`).find('.thumbnail-container').html(thumbnailImg);
                     video.currentTime = 0;
                 };
-                video.currentTime = 1;
+                // Busca um frame no início do vídeo para o thumbnail
+                video.currentTime = Math.min(1, video.duration / 2);
             }
 
             mediaBin.on('click', '.add-to-timeline-btn', function() {
@@ -349,7 +359,6 @@
             const totalDurationEl = $('#total-duration');
             const playbackProgress = $('#playback-progress');
 
-            // CORREÇÃO 2: Função de formatação de tempo mais robusta
             function formatTime(ms) {
                 if (isNaN(ms) || ms < 0) {
                     return '00:00';
@@ -360,7 +369,6 @@
                 return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             }
 
-            // CORREÇÃO 2: Função de atualização de duração mais robusta
             function updateTotalDuration() {
                 const allItems = items.get();
                 let newTotalDuration = 0;
@@ -388,7 +396,13 @@
                     }
                     playPauseBtn.find('i').removeClass('fa-play').addClass('fa-pause');
                     lastFrameTime = performance.now();
-                    renderLoop();
+                    
+                    // --- CORREÇÃO PRINCIPAL ---
+                    // A função renderLoop precisa ser iniciada com requestAnimationFrame
+                    // para receber o timestamp inicial. A chamada direta `renderLoop()`
+                    // passava 'undefined' como tempo, quebrando o cálculo do delta.
+                    animationFrameId = requestAnimationFrame(renderLoop);
+                    
                     playActiveAudio();
                 } else {
                     playPauseBtn.find('i').removeClass('fa-pause').addClass('fa-play');
@@ -397,7 +411,6 @@
                 }
             }
 
-            // CORREÇÃO 2: Loop de renderização com proteção contra divisão por zero
             function renderLoop(now) {
                 if (!isPlaying) return;
 
@@ -407,16 +420,21 @@
 
                 if (currentTime >= totalDuration) {
                     currentTime = totalDuration;
-                    togglePlayPause();
+                    togglePlayPause(); // Para a reprodução no final
                 }
 
+                // Atualiza a posição da agulha na timeline
                 timeline.setCustomTime(currentTime, 'playback-time');
+                
+                // Atualiza a UI de tempo e progresso
                 currentTimeEl.text(formatTime(currentTime));
                 const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
                 playbackProgress.css('width', `${progressPercentage}%`);
                 
+                // Desenha o frame atual no canvas
                 drawFrame();
                 
+                // Continua o loop na próxima atualização de tela
                 animationFrameId = requestAnimationFrame(renderLoop);
             }
             
@@ -425,6 +443,7 @@
                     filter: item => item.start <= currentTime && item.end > currentTime
                 });
 
+                // Encontra o item visual (vídeo ou imagem) na trilha mais alta
                 const visualItem = activeItems
                     .filter(item => mediaAssets[item.mediaId]?.type.startsWith('video/') || mediaAssets[item.mediaId]?.type.startsWith('image/'))
                     .sort((a,b) => groups.get(b.group).value - groups.get(a.group).value)[0];
@@ -434,17 +453,20 @@
                     const element = asset.element;
 
                     if (asset.type.startsWith('video/')) {
+                        // Ajusta o tamanho do canvas para o tamanho do vídeo
                         if (canvas.width !== element.videoWidth || canvas.height !== element.videoHeight) {
                             canvas.width = element.videoWidth;
                             canvas.height = element.videoHeight;
                         }
                         const videoTime = (currentTime - visualItem.start) / 1000;
-                        if (Math.abs(element.currentTime - videoTime) > 0.1) { // Evita seeks desnecessários
+                        // Tolerância para evitar seeks desnecessários que causam "engasgos"
+                        if (Math.abs(element.currentTime - videoTime) > 0.1) { 
                             element.currentTime = videoTime;
                         }
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
                     } else if (asset.type.startsWith('image/')) {
+                        // Ajusta o tamanho do canvas para o tamanho da imagem
                         if (canvas.width !== element.naturalWidth || canvas.height !== element.naturalHeight) {
                             canvas.width = element.naturalWidth;
                             canvas.height = element.naturalHeight;
@@ -453,11 +475,15 @@
                         ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
                     }
                 } else {
+                    // Limpa o canvas se não houver item visual
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
             }
             
             function playActiveAudio() {
+                // Pausa todos para evitar sobreposição ao dar play
+                pauseAllAudio();
+                
                 const activeAudioItems = items.get({
                     filter: item => mediaAssets[item.mediaId]?.type.startsWith('audio/') && item.start <= currentTime && item.end > currentTime
                 });
@@ -473,7 +499,7 @@
 
             function pauseAllAudio() {
                 Object.values(mediaAssets).forEach(asset => {
-                    if (asset.type.startsWith('audio/')) {
+                    if (asset.type.startsWith('audio/') && asset.element) {
                         asset.element.pause();
                     }
                 });
