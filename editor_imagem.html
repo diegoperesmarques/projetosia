@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Imagem Online</title>
+    
+    <!-- Biblioteca Fabric.js para manipulação do Canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    
+    <!-- Biblioteca de Ícones (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Fontes do Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #3685ff;
+            --secondary-color: #f0f4f8;
+            --background-color: #e4e9f0;
+            --text-color: #333;
+            --border-color: #d1d9e6;
+            --shadow-light: rgba(255, 255, 255, 0.7);
+            --shadow-dark: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout Principal */
+        .editor-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .canvas-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: repeating-conic-gradient(var(--secondary-color) 0% 25%, var(--border-color) 0% 50%) 50% / 20px 20px;
+            overflow: auto;
+        }
+
+        canvas {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Painéis Laterais */
+        .sidebar {
+            width: 300px;
+            background-color: var(--secondary-color);
+            border-left: 1px solid var(--border-color);
+            padding: 15px;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+
+        .tool-panel {
+            width: 280px;
+            background-color: var(--secondary-color);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+
+        .panel-section {
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            background-color: #fff;
+            box-shadow: 3px 3px 6px var(--shadow-dark), -3px -3px 6px var(--shadow-light);
+        }
+
+        .panel-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        /* Controles e Botões */
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn, input[type="file"]::file-selector-button {
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .btn:hover, input[type="file"]::file-selector-button:hover {
+            background-color: #2a70d6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-group .btn {
+            margin-bottom: 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        
+        input[type="file"] {
+            font-size: 12px;
+            color: var(--text-color);
+        }
+
+        /* Barra de Ferramentas Superior */
+        .top-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .top-toolbar .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .top-toolbar .tool-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+            color: #555;
+        }
+
+        .tool-btn:hover {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+        
+        /* Painel de Camadas */
+        #layer-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #layer-list li {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: var(--secondary-color);
+            border-radius: 6px;
+            cursor: grab;
+            border: 1px solid transparent;
+            transition: background-color 0.2s;
+        }
+        #layer-list li.active {
+            background-color: #d1e7ff;
+            border-color: var(--primary-color);
+        }
+        #layer-list li .layer-name {
+            flex-grow: 1;
+            margin-left: 8px;
+            font-size: 14px;
+        }
+        #layer-list li .visibility-toggle {
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        #layer-list li .delete-layer {
+            cursor: pointer;
+            color: #dc3545;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 25px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-btn:hover, .close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            .sidebar, .tool-panel {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+                border: none;
+                border-top: 1px solid var(--border-color);
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+            .panel-section {
+                flex-basis: 45%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-toolbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .panel-section {
+                flex-basis: 95%;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-toolbar">
+        <div class="logo"><i class="fas fa-magic"></i> PhotoEditor</div>
+        <div class="tool-buttons">
+            <button id="undo-btn" class="tool-btn" title="Desfazer (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+            <button id="redo-btn" class="tool-btn" title="Refazer (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+            <button id="zoom-in-btn" class="tool-btn" title="Aumentar Zoom"><i class="fas fa-search-plus"></i></button>
+            <button id="zoom-out-btn" class="tool-btn" title="Diminuir Zoom"><i class="fas fa-search-minus"></i></button>
+            <button id="fit-to-screen-btn" class="tool-btn" title="Ajustar à Tela"><i class="fas fa-expand-arrows-alt"></i></button>
+            <button id="pan-btn" class="tool-btn" title="Mover (Pan)"><i class="fas fa-hand-paper"></i></button>
+        </div>
+        <div class="save-button">
+            <button id="save-btn" class="btn"><i class="fas fa-save"></i> Salvar Imagem</button>
+        </div>
+    </header>
+
+    <div class="editor-container">
+        <!-- PAINEL DE FERRAMENTAS (ESQUERDA) -->
+        <aside class="tool-panel">
+            <div class="panel-section">
+                <h3><i class="fas fa-folder-open"></i> Arquivo</h3>
+                <input type="file" id="upload-image-btn" accept="image/*">
+                <button id="url-image-btn" class="btn btn-secondary">Carregar de URL</button>
+                <button id="new-image-btn" class="btn btn-secondary">Nova Imagem</button>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-crop-alt"></i> Transformar</h3>
+                <div class="btn-group">
+                    <button id="crop-btn" class="btn">Recortar</button>
+                    <button id="cancel-crop-btn" class="btn btn-secondary" style="display: none;">Cancelar</button>
+                </div>
+                <div class="btn-group">
+                    <button id="rotate-left-btn" class="btn"><i class="fas fa-rotate-left"></i></button>
+                    <button id="rotate-right-btn" class="btn"><i class="fas fa-rotate-right"></i></button>
+                </div>
+                 <div class="btn-group">
+                    <button id="flip-h-btn" class="btn">Virar H</button>
+                    <button id="flip-v-btn" class="btn">Virar V</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-palette"></i> Filtros Predefinidos</h3>
+                <select id="filter-select">
+                    <option value="none">Nenhum</option>
+                    <option value="grayscale">Preto e Branco</option>
+                    <option value="sepia">Sépia</option>
+                    <option value="invert">Inverter</option>
+                    <option value="vintage">Vintage</option>
+                </select>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-font"></i> Texto</h3>
+                <button id="add-text-btn" class="btn">Adicionar Texto</button>
+                <div id="text-controls" style="display: none;">
+                    <div class="control-group">
+                        <label for="font-family">Fonte:</label>
+                        <select id="font-family">
+                            <option>Arial</option>
+                            <option>Verdana</option>
+                            <option>Times New Roman</option>
+                            <option>Courier New</option>
+                            <option>Roboto</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="text-color">Cor:</label>
+                        <input type="color" id="text-color" value="#000000">
+                    </div>
+                    <div class="btn-group">
+                        <button id="text-bold-btn" class="btn"><i class="fas fa-bold"></i></button>
+                        <button id="text-italic-btn" class="btn"><i class="fas fa-italic"></i></button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ÁREA DO CANVAS (CENTRO) -->
+        <main class="main-content">
+            <div class="canvas-wrapper" id="canvas-wrapper">
+                <canvas id="c"></canvas>
+            </div>
+        </main>
+
+        <!-- PAINEL DE AJUSTES E CAMADAS (DIREITA) -->
+        <aside class="sidebar">
+            <div class="panel-section">
+                <h3><i class="fas fa-sliders-h"></i> Ajustes Finos</h3>
+                <div class="control-group">
+                    <label for="brightness">Brilho</label>
+                    <input type="range" id="brightness" min="-1" max="1" step="0.01" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="contrast">Contraste</label>
+                    <input type="range" id="contrast" min="-1" max="1" step="0.01" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="saturation">Saturação</label>
+                    <input type="range" id="saturation" min="-1" max="1" step="0.01" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="hue">Matiz</label>
+                    <input type="range" id="hue" min="-1" max="1" step="0.01" value="0">
+                </div>
+                 <div class="control-group">
+                    <label for="blur">Desfoque</label>
+                    <input type="range" id="blur" min="0" max="1" step="0.01" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="noise">Ruído</label>
+                    <input type="range" id="noise" min="0" max="1000" step="1" value="0">
+                </div>
+                <button id="reset-filters-btn" class="btn btn-secondary">Resetar Ajustes</button>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-layer-group"></i> Camadas</h3>
+                <ul id="layer-list"></ul>
+                <div class="btn-group">
+                    <button id="layer-up-btn" class="btn"><i class="fas fa-arrow-up"></i></button>
+                    <button id="layer-down-btn" class="btn"><i class="fas fa-arrow-down"></i></button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modals -->
+    <div id="new-image-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Criar Nova Imagem</h3>
+            <div class="control-group">
+                <label for="img-width">Largura (px):</label>
+                <input type="number" id="img-width" value="800">
+            </div>
+            <div class="control-group">
+                <label for="img-height">Altura (px):</label>
+                <input type="number" id="img-height" value="600">
+            </div>
+            <div class="control-group">
+                <label for="img-bg-color">Cor de Fundo:</label>
+                <input type="color" id="img-bg-color" value="#ffffff">
+            </div>
+            <button id="create-new-image-btn" class="btn">Criar</button>
+        </div>
+    </div>
+    
+    <div id="url-image-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Carregar de URL</h3>
+            <div class="control-group">
+                <label for="image-url">URL da Imagem:</label>
+                <input type="text" id="image-url" placeholder="https://exemplo.com/imagem.jpg">
+            </div>
+            <button id="load-from-url-btn" class="btn">Carregar</button>
+        </div>
+    </div>
+    
+    <div id="save-image-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Salvar Imagem</h3>
+            <div class="control-group">
+                <label for="filename">Nome do Arquivo:</label>
+                <input type="text" id="filename" value="imagem-editada">
+            </div>
+            <div class="control-group">
+                <label for="fileformat">Formato:</label>
+                <select id="fileformat">
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="svg">SVG</option>
+                </select>
+            </div>
+            <div class="control-group" id="quality-control" style="display:none;">
+                <label for="jpeg-quality">Qualidade JPEG:</label>
+                <input type="range" id="jpeg-quality" min="0.1" max="1" step="0.1" value="0.9">
+            </div>
+            <button id="export-btn" class="btn">Exportar</button>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = new fabric.Canvas('c');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        
+        let history = [];
+        let historyIndex = -1;
+        let isPanMode = false;
+        let lastClientX, lastClientY;
+
+        // Função para ajustar o tamanho do canvas ao wrapper
+        function resizeCanvas() {
+            const wrapperWidth = canvasWrapper.clientWidth - 40; // 20px padding on each side
+            const wrapperHeight = canvasWrapper.clientHeight - 40;
+            canvas.setWidth(wrapperWidth);
+            canvas.setHeight(wrapperHeight);
+            canvas.renderAll();
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Gerenciamento de Estado (Undo/Redo) ---
+        function saveState() {
+            history = history.slice(0, historyIndex + 1);
+            const state = canvas.toDatalessJSON();
+            history.push(state);
+            historyIndex++;
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                canvas.loadFromJSON(history[historyIndex], () => {
+                    canvas.renderAll();
+                    updateLayerList();
+                });
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                canvas.loadFromJSON(history[historyIndex], () => {
+                    canvas.renderAll();
+                    updateLayerList();
+                });
+            }
+        }
+
+        canvas.on('object:modified', saveState);
+        canvas.on('object:added', saveState);
+        canvas.on('object:removed', saveState);
+
+        document.getElementById('undo-btn').addEventListener('click', undo);
+        document.getElementById('redo-btn').addEventListener('click', redo);
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') undo();
+            if (e.ctrlKey && e.key === 'y') redo();
+        });
+
+
+        // --- Carregamento de Imagem ---
+        document.getElementById('upload-image-btn').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (f) => {
+                fabric.Image.fromURL(f.target.result, (img) => {
+                    addImageToCanvas(img);
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        function addImageToCanvas(img) {
+            img.scaleToWidth(canvas.getWidth() * 0.8);
+            canvas.add(img);
+            canvas.centerObject(img);
+            updateLayerList();
+            saveState();
+        }
+
+        // --- Nova Imagem / URL ---
+        const newImageModal = document.getElementById('new-image-modal');
+        const urlImageModal = document.getElementById('url-image-modal');
+        
+        document.getElementById('new-image-btn').addEventListener('click', () => newImageModal.style.display = 'flex');
+        document.getElementById('url-image-btn').addEventListener('click', () => urlImageModal.style.display = 'flex');
+
+        document.getElementById('create-new-image-btn').addEventListener('click', () => {
+            const width = document.getElementById('img-width').value;
+            const height = document.getElementById('img-height').value;
+            const color = document.getElementById('img-bg-color').value;
+            canvas.clear();
+            canvas.backgroundColor = color;
+            canvas.setWidth(parseInt(width));
+            canvas.setHeight(parseInt(height));
+            canvas.renderAll();
+            newImageModal.style.display = 'none';
+            saveState();
+        });
+        
+        document.getElementById('load-from-url-btn').addEventListener('click', () => {
+            const url = document.getElementById('image-url').value;
+            // Usando um proxy para evitar problemas de CORS. Para um projeto real, um backend próprio seria ideal.
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+            fabric.Image.fromURL(proxyUrl, (img) => {
+                addImageToCanvas(img);
+                urlImageModal.style.display = 'none';
+            }, { crossOrigin: 'Anonymous' });
+        });
+
+        // --- Salvar Imagem ---
+        const saveModal = document.getElementById('save-image-modal');
+        document.getElementById('save-btn').addEventListener('click', () => saveModal.style.display = 'flex');
+
+        document.getElementById('fileformat').addEventListener('change', (e) => {
+            document.getElementById('quality-control').style.display = e.target.value === 'jpeg' ? 'block' : 'none';
+        });
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const format = document.getElementById('fileformat').value;
+            const filename = document.getElementById('filename').value;
+            const quality = parseFloat(document.getElementById('jpeg-quality').value);
+            
+            const dataURL = canvas.toDataURL({
+                format: format,
+                quality: format === 'jpeg' ? quality : undefined,
+            });
+
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = `${filename}.${format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            saveModal.style.display = 'none';
+        });
+
+        // --- Zoom e Pan ---
+        document.getElementById('zoom-in-btn').addEventListener('click', () => {
+            canvas.setZoom(canvas.getZoom() * 1.1);
+        });
+        document.getElementById('zoom-out-btn').addEventListener('click', () => {
+            canvas.setZoom(canvas.getZoom() / 1.1);
+        });
+        document.getElementById('fit-to-screen-btn').addEventListener('click', () => {
+            canvas.setZoom(1);
+            resizeCanvas();
+            if (canvas.getObjects().length > 0) {
+                canvas.centerObject(canvas.getObjects()[0]); // Centraliza o primeiro objeto
+            }
+        });
+
+        document.getElementById('pan-btn').addEventListener('click', () => {
+            isPanMode = !isPanMode;
+            canvas.selection = !isPanMode;
+            canvas.defaultCursor = isPanMode ? 'grab' : 'default';
+            document.getElementById('pan-btn').style.backgroundColor = isPanMode ? 'var(--primary-color)' : '';
+            document.getElementById('pan-btn').style.color = isPanMode ? '#fff' : '';
+        });
+
+        canvas.on('mouse:down', (opt) => {
+            if (isPanMode) {
+                canvas.defaultCursor = 'grabbing';
+                lastClientX = opt.e.clientX;
+                lastClientY = opt.e.clientY;
+            }
+        });
+        canvas.on('mouse:move', (opt) => {
+            if (isPanMode && opt.e.buttons === 1) {
+                const deltaX = opt.e.clientX - lastClientX;
+                const deltaY = opt.e.clientY - lastClientY;
+                canvas.relativePan({ x: deltaX, y: deltaY });
+                lastClientX = opt.e.clientX;
+                lastClientY = opt.e.clientY;
+            }
+        });
+        canvas.on('mouse:up', () => {
+            if (isPanMode) {
+                canvas.defaultCursor = 'grab';
+            }
+        });
+
+        // --- Filtros e Ajustes ---
+        const filters = ['brightness', 'contrast', 'saturation', 'hue', 'blur', 'noise'];
+        const filterClasses = {
+            brightness: fabric.Image.filters.Brightness,
+            contrast: fabric.Image.filters.Contrast,
+            saturation: fabric.Image.filters.Saturation,
+            hue: fabric.Image.filters.HueRotation,
+            blur: fabric.Image.filters.Blur,
+            noise: fabric.Image.filters.Noise
+        };
+
+        function applyFilter(index, filter) {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'image') {
+                obj.filters[index] = filter;
+                obj.applyFilters();
+                canvas.renderAll();
+            }
+        }
+
+        function applyFilterValue(index, prop, value) {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'image' && obj.filters[index]) {
+                obj.filters[index][prop] = value;
+                obj.applyFilters();
+                canvas.renderAll();
+            }
+        }
+        
+        filters.forEach((filterName, i) => {
+            document.getElementById(filterName).addEventListener('input', (e) => {
+                const obj = canvas.getActiveObject();
+                if (!obj || obj.type !== 'image') return;
+                
+                const value = filterName === 'hue' ? parseFloat(e.target.value) : parseFloat(e.target.value);
+                const propName = {
+                    brightness: 'brightness',
+                    contrast: 'contrast',
+                    saturation: 'saturation',
+                    hue: 'rotation',
+                    blur: 'blur',
+                    noise: 'noise'
+                }[filterName];
+
+                if (!obj.filters[i]) {
+                    obj.filters[i] = new filterClasses[filterName]({ [propName]: value });
+                } else {
+                    obj.filters[i][propName] = value;
+                }
+                obj.applyFilters();
+                canvas.renderAll();
+            });
+        });
+
+        document.getElementById('reset-filters-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'image') {
+                obj.filters = [];
+                obj.applyFilters();
+                canvas.renderAll();
+                filters.forEach(f => document.getElementById(f).value = (f === 'noise' || f === 'blur') ? 0 : 0);
+            }
+        });
+        
+        // Filtros predefinidos
+        document.getElementById('filter-select').addEventListener('change', (e) => {
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return;
+            
+            const filterMap = {
+                grayscale: new fabric.Image.filters.Grayscale(),
+                sepia: new fabric.Image.filters.Sepia(),
+                invert: new fabric.Image.filters.Invert(),
+                vintage: new fabric.Image.filters.Vintage(),
+            };
+            
+            // Remove apenas filtros predefinidos anteriores
+            obj.filters = obj.filters.filter(f => !['Grayscale', 'Sepia', 'Invert', 'Vintage'].includes(f.type));
+
+            if (e.target.value !== 'none') {
+                obj.filters.push(filterMap[e.target.value]);
+            }
+            
+            obj.applyFilters();
+            canvas.renderAll();
+            saveState();
+        });
+
+
+        // --- Transformações ---
+        let cropRect;
+        document.getElementById('crop-btn').addEventListener('click', (e) => {
+            if (e.target.innerText === 'Confirmar Recorte') {
+                finishCrop(true);
+                return;
+            }
+
+            const obj = canvas.getActiveObject();
+            if (!obj) return;
+
+            document.getElementById('crop-btn').innerText = 'Confirmar Recorte';
+            document.getElementById('cancel-crop-btn').style.display = 'inline-block';
+
+            cropRect = new fabric.Rect({
+                left: obj.left,
+                top: obj.top,
+                width: obj.getScaledWidth() / 2,
+                height: obj.getScaledHeight() / 2,
+                fill: 'rgba(0,0,0,0.3)',
+                stroke: '#3685ff',
+                strokeWidth: 2,
+                strokeDashArray: [5, 5],
+                cornerColor: '#3685ff',
+                cornerSize: 10,
+                transparentCorners: false
+            });
+            canvas.add(cropRect);
+            canvas.setActiveObject(cropRect);
+        });
+
+        document.getElementById('cancel-crop-btn').addEventListener('click', () => finishCrop(false));
+
+        function finishCrop(confirm = false) {
+            if (confirm) {
+                const obj = canvas.getObjects().find(o => o.type === 'image');
+                if (obj && cropRect) {
+                    const cropData = {
+                        left: cropRect.left - obj.left,
+                        top: cropRect.top - obj.top,
+                        width: cropRect.getScaledWidth(),
+                        height: cropRect.getScaledHeight()
+                    };
+                    obj.cropX = cropData.left / obj.scaleX;
+                    obj.cropY = cropData.top / obj.scaleY;
+                    obj.width = cropData.width / obj.scaleX;
+                    obj.height = cropData.height / obj.scaleY;
+                    obj.left = cropRect.left;
+                    obj.top = cropRect.top;
+                    obj.scaleX = 1;
+                    obj.scaleY = 1;
+                }
+            }
+            if(cropRect) canvas.remove(cropRect);
+            document.getElementById('crop-btn').innerText = 'Recortar';
+            document.getElementById('cancel-crop-btn').style.display = 'none';
+            canvas.renderAll();
+            saveState();
+        }
+
+        document.getElementById('rotate-left-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                obj.rotate(obj.angle - 90);
+                canvas.renderAll();
+                saveState();
+            }
+        });
+        document.getElementById('rotate-right-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                obj.rotate(obj.angle + 90);
+                canvas.renderAll();
+                saveState();
+            }
+        });
+        document.getElementById('flip-h-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                obj.toggle('flipX');
+                canvas.renderAll();
+                saveState();
+            }
+        });
+        document.getElementById('flip-v-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                obj.toggle('flipY');
+                canvas.renderAll();
+                saveState();
+            }
+        });
+
+        // --- Texto ---
+        const textControls = document.getElementById('text-controls');
+        document.getElementById('add-text-btn').addEventListener('click', () => {
+            const text = new fabric.IText('Edite este texto', {
+                left: canvas.width / 2,
+                top: canvas.height / 2,
+                fontFamily: 'Arial',
+                fill: '#000000',
+                originX: 'center',
+                originY: 'center',
+            });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            updateLayerList();
+        });
+
+        canvas.on('selection:created', updateTextControls);
+        canvas.on('selection:updated', updateTextControls);
+        canvas.on('selection:cleared', updateTextControls);
+
+        function updateTextControls() {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'i-text') {
+                textControls.style.display = 'block';
+                document.getElementById('font-family').value = obj.fontFamily;
+                document.getElementById('text-color').value = obj.fill;
+                
+                // Atualiza o estado visual dos botões de estilo
+                const boldBtn = document.getElementById('text-bold-btn');
+                const italicBtn = document.getElementById('text-italic-btn');
+                
+                boldBtn.style.backgroundColor = obj.fontWeight === 'bold' ? 'var(--primary-color)' : '';
+                boldBtn.style.color = obj.fontWeight === 'bold' ? '#fff' : '';
+                
+                italicBtn.style.backgroundColor = obj.fontStyle === 'italic' ? 'var(--primary-color)' : '';
+                italicBtn.style.color = obj.fontStyle === 'italic' ? '#fff' : '';
+
+            } else {
+                textControls.style.display = 'none';
+            }
+        }
+
+        document.getElementById('font-family').addEventListener('change', (e) => {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'i-text') obj.set('fontFamily', e.target.value);
+            canvas.renderAll();
+        });
+        document.getElementById('text-color').addEventListener('input', (e) => {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'i-text') obj.set('fill', e.target.value);
+            canvas.renderAll();
+        });
+        document.getElementById('text-bold-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'i-text') {
+                obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
+                canvas.renderAll();
+                updateTextControls();
+            }
+        });
+        document.getElementById('text-italic-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj && obj.type === 'i-text') {
+                obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
+                canvas.renderAll();
+                updateTextControls();
+            }
+        });
+
+        // --- Camadas ---
+        const layerList = document.getElementById('layer-list');
+        function updateLayerList() {
+            layerList.innerHTML = '';
+            canvas.getObjects().slice().reverse().forEach((obj, index) => {
+                const li = document.createElement('li');
+                li.dataset.index = canvas.getObjects().length - 1 - index;
+                
+                const visibilityIcon = document.createElement('i');
+                visibilityIcon.className = `fas ${obj.visible ? 'fa-eye' : 'fa-eye-slash'} visibility-toggle`;
+                visibilityIcon.onclick = () => {
+                    obj.set('visible', !obj.visible);
+                    canvas.renderAll();
+                    updateLayerList();
+                    saveState();
+                };
+
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = obj.type === 'i-text' ? `Texto: "${obj.text.substring(0,15)}..."` : `Camada ${obj.type}`;
+                
+                const deleteIcon = document.createElement('i');
+                deleteIcon.className = 'fas fa-trash-alt delete-layer';
+                deleteIcon.onclick = () => {
+                    canvas.remove(obj);
+                    updateLayerList();
+                    saveState();
+                };
+
+                li.appendChild(visibilityIcon);
+                li.appendChild(name);
+                li.appendChild(deleteIcon);
+                
+                if (obj === canvas.getActiveObject()) {
+                    li.classList.add('active');
+                }
+
+                li.addEventListener('click', () => {
+                    canvas.setActiveObject(obj);
+                    canvas.renderAll();
+                });
+
+                layerList.appendChild(li);
+            });
+        }
+        
+        canvas.on('selection:created', updateLayerList);
+        canvas.on('selection:updated', updateLayerList);
+        canvas.on('selection:cleared', updateLayerList);
+        
+        document.getElementById('layer-up-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                canvas.bringForward(obj);
+                updateLayerList();
+                saveState();
+            }
+        });
+        document.getElementById('layer-down-btn').addEventListener('click', () => {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                canvas.sendBackwards(obj);
+                updateLayerList();
+                saveState();
+            }
+        });
+
+        // --- Fechar Modals ---
+        document.querySelectorAll('.modal .close-btn').forEach(btn => {
+            btn.onclick = () => {
+                btn.closest('.modal').style.display = 'none';
+            }
+        });
+        window.onclick = (event) => {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+        
+        // Estado inicial
+        saveState();
+        updateLayerList();
+    });
+    </script>
+</body>
+</html>
