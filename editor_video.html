@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Vídeo Online</title>
+    <title>Editor de Vídeo Online (Corrigido)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,9 +11,6 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
-    <!-- Interact.js -->
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-
     <!-- vis-timeline -->
     <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
     <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
@@ -22,19 +19,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <style>
-        /* Estilos customizados */
+        /* Estilos customizados para uma aparência mais profissional */
         body {
             font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-        .media-bin-item {
-            cursor: grab;
+            overflow: hidden; /* Previne scroll na página inteira */
         }
         .vis-item {
             border-color: #4f46e5;
             background-color: #6366f1;
             color: white;
             border-radius: 4px;
+            padding: 5px;
         }
         .vis-item.vis-selected {
             border-color: #f59e0b;
@@ -43,26 +38,18 @@
         .vis-timeline {
             border: 1px solid #4a5568;
         }
-        .progress-bar-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 5px;
-            height: 10px;
-        }
-        .progress-bar {
-            height: 10px;
-            width: 0;
-            background-color: #4caf50;
-            border-radius: 5px;
-            transition: width 0.3s ease-in-out;
+        #preview-canvas {
+            /* Garante que o canvas não ultrapasse o contêiner */
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
 <body class="bg-gray-800 text-white flex flex-col h-screen">
 
     <!-- Header -->
-    <header class="bg-gray-900 text-white p-2 flex justify-between items-center shadow-md z-20">
+    <header class="bg-gray-900 text-white p-2 flex justify-between items-center shadow-md z-20 flex-shrink-0">
         <h1 class="text-xl font-bold"> <i class="fas fa-film mr-2"></i> Editor de Vídeo Pro</h1>
         <div>
             <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
@@ -74,11 +61,11 @@
     <!-- Main Content -->
     <div class="flex flex-1 overflow-hidden">
         
-        <!-- Left Panel: Media Bin & Tools -->
+        <!-- Painel Esquerdo: Mídia e Ferramentas -->
         <aside class="w-1/4 bg-gray-900 p-4 flex flex-col overflow-y-auto">
             <div class="mb-4">
                 <h2 class="text-lg font-semibold mb-2 border-b border-gray-700 pb-2"> <i class="fas fa-photo-video mr-2"></i> Mídia</h2>
-                <div class="bg-gray-800 p-4 rounded-lg border-2 border-dashed border-gray-600 text-center">
+                <div id="drop-zone" class="bg-gray-800 p-4 rounded-lg border-2 border-dashed border-gray-600 text-center cursor-pointer hover:border-indigo-500 transition-colors">
                     <input type="file" id="media-upload" multiple class="hidden" accept="video/*,image/*,audio/*">
                     <label for="media-upload" class="cursor-pointer">
                         <i class="fas fa-upload fa-2x text-gray-500 mb-2"></i>
@@ -92,12 +79,12 @@
             </div>
         </aside>
 
-        <!-- Right Panel: Player & Timeline -->
-        <main class="w-3/4 flex flex-col p-4">
+        <!-- Painel Direito: Player e Timeline -->
+        <main class="w-3/4 flex flex-col p-4 overflow-hidden">
             
-            <!-- Preview Player -->
-            <div class="flex-1 bg-black mb-4 rounded-lg shadow-lg flex items-center justify-center relative">
-                 <canvas id="preview-canvas" class="w-full h-full"></canvas>
+            <!-- Player de Pré-visualização -->
+            <div class="h-3/5 bg-black mb-4 rounded-lg shadow-lg flex items-center justify-center relative">
+                 <canvas id="preview-canvas"></canvas>
                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2 flex items-center space-x-4">
                     <button id="play-pause-btn" class="text-white"><i class="fas fa-play fa-lg"></i></button>
                     <span id="current-time" class="text-sm">00:00</span>
@@ -108,36 +95,39 @@
                  </div>
             </div>
 
-            <!-- Timeline Controls -->
+            <!-- Controles da Timeline -->
             <div class="flex items-center space-x-4 mb-2 p-2 bg-gray-900 rounded-lg">
                 <button id="add-track-btn" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="Adicionar Trilha"><i class="fas fa-plus"></i></button>
                 <button class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="Dividir (Split)"><i class="fas fa-cut"></i></button>
-                <button class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="Aparar (Trim)"><i class="fas fa-crop-alt"></i></button>
                 <button id="zoom-in-btn" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="Zoom In"><i class="fas fa-search-plus"></i></button>
                 <button id="zoom-out-btn" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
             </div>
 
             <!-- Timeline -->
-            <div id="timeline-container" class="w-full h-64 bg-gray-900 rounded-lg shadow-inner"></div>
+            <div id="timeline-container" class="w-full h-2/5 bg-gray-900 rounded-lg shadow-inner"></div>
         </main>
     </div>
 
     <script>
         $(document).ready(function() {
-            // --- MÓDULO 1: GERENCIAMENTO DE MÍDIA E LINHA DO TEMPO ---
-
+            // --- VARIÁVEIS GLOBAIS ---
             const mediaBin = $('#media-bin');
             const mediaUpload = $('#media-upload');
+            const dropZone = $('#drop-zone');
             const timelineContainer = document.getElementById('timeline-container');
-            let mediaCounter = 0; // Para IDs únicos dos itens de mídia
+            const canvas = document.getElementById('preview-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let mediaCounter = 0;
             let timeline;
             let items = new vis.DataSet();
             let groups = new vis.DataSet();
             let trackCounter = 1;
+            let mediaAssets = {}; // Armazena os elementos de mídia (video, audio, img)
 
-            // 1) Linha do Tempo (Timeline) Interativa
+            // --- MÓDULO 1: GERENCIAMENTO DE MÍDIA E LINHA DO TEMPO ---
+
             function initializeTimeline() {
-                // Adiciona a primeira trilha de vídeo e áudio
                 groups.add([
                     { id: 'video1', content: 'Vídeo 1 <i class="fas fa-video ml-2 text-indigo-300"></i>', value: 1 },
                     { id: 'audio1', content: 'Áudio 1 <i class="fas fa-volume-up ml-2 text-teal-300"></i>', value: 2 }
@@ -146,228 +136,311 @@
                 const options = {
                     stack: false,
                     start: 0,
-                    end: 60000, // 60 segundos iniciais
+                    end: 60000, // 1 minuto inicial
                     min: 0,
                     max: 3600000, // 1 hora de limite
-                    zoomMin: 1000, // 1 segundo
+                    zoomMin: 1000, // 1 segundo de zoom min
                     zoomMax: 3600000,
                     editable: {
                         add: false,
                         updateTime: true,
                         updateGroup: true,
                         remove: true,
-                        overrideItems: false
                     },
-                    margin: {
-                        item: 10,
-                        axis: 5
-                    },
+                    margin: { item: 10, axis: 5 },
                     orientation: 'bottom',
-                    // Formata a escala de tempo para min:seg
-                    format: {
-                        minorLabels: {
-                            millisecond: 'ss.SSS',
-                            second: 'mm:ss',
-                            minute: 'mm:ss',
-                            hour: 'HH:mm',
-                        },
-                        majorLabels: {
-                            millisecond: 'HH:mm:ss',
-                            second: 'mm:ss',
-                            minute: 'HH:mm',
-                            hour: 'HH:mm'
-                        }
-                    },
-                    // Converte o valor do tempo para um formato legível
-                    timeAxis: {
-                        scale: 'second',
-                        step: 5
-                    },
                     onMove: function(item, callback) {
-                        // Lógica para quando um clipe é movido
+                        // Garante que os itens não possam ter tempo de início negativo
                         item.start = Math.max(0, item.start);
                         item.end = item.start + (item.end - item.start);
                         callback(item);
-                    }
+                        updateTotalDuration();
+                    },
+                    onUpdate: updateTotalDuration,
+                    onRemove: updateTotalDuration,
                 };
-
                 timeline = new vis.Timeline(timelineContainer, items, groups, options);
+                // Adiciona a barra de tempo vermelha
+                timeline.addCustomTime(0, 'playback-time');
             }
             
-            // Adicionar nova trilha
             $('#add-track-btn').on('click', function() {
                 trackCounter++;
-                const newVideoTrackId = `video${trackCounter}`;
-                const newAudioTrackId = `audio${trackCounter}`;
                 groups.add([
-                    { id: newVideoTrackId, content: `Vídeo ${trackCounter} <i class="fas fa-video ml-2 text-indigo-300"></i>`, value: trackCounter * 2 -1 },
-                    { id: newAudioTrackId, content: `Áudio ${trackCounter} <i class="fas fa-volume-up ml-2 text-teal-300"></i>`, value: trackCounter * 2 }
+                    { id: `video${trackCounter}`, content: `Vídeo ${trackCounter} <i class="fas fa-video ml-2 text-indigo-300"></i>`, value: trackCounter * 2 -1 },
+                    { id: `audio${trackCounter}`, content: `Áudio ${trackCounter} <i class="fas fa-volume-up ml-2 text-teal-300"></i>`, value: trackCounter * 2 }
                 ]);
             });
             
-            // Controles de Zoom
             $('#zoom-in-btn').on('click', () => timeline.zoomIn(0.5));
             $('#zoom-out-btn').on('click', () => timeline.zoomOut(0.5));
 
-
-            // 2) Gestão de Arquivos (Media Bin)
-            mediaUpload.on('change', function(event) {
-                const files = event.target.files;
-                if (files.length > 0) {
-                    for(const file of files) {
-                        addMediaToBin(file);
-                    }
-                }
+            mediaUpload.on('change', (event) => handleFiles(event.target.files));
+            
+            dropZone.on('dragover dragenter', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.addClass('border-indigo-500');
+            }).on('dragleave drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.removeClass('border-indigo-500');
+            }).on('drop', (e) => {
+                handleFiles(e.originalEvent.dataTransfer.files);
             });
             
-            // Prevenir comportamento padrão de arrastar e soltar
-            $(document).on('dragover', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-            $(document).on('drop', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const files = e.originalEvent.dataTransfer.files;
-                 if (files.length > 0) {
-                    for(const file of files) {
-                        addMediaToBin(file);
-                    }
+            function handleFiles(files) {
+                for(const file of files) {
+                    addMediaToBin(file);
                 }
-            });
-
+            }
 
             function addMediaToBin(file) {
                 const mediaId = `media-${mediaCounter++}`;
                 const objectURL = URL.createObjectURL(file);
                 let mediaElement;
-                let iconClass;
-                let duration = 0;
-
+                
                 const mediaItemHTML = `
-                    <div id="${mediaId}" class="media-bin-item bg-gray-700 p-2 rounded-lg flex items-center space-x-3" draggable="true">
-                        <div class="w-16 h-10 bg-black rounded flex items-center justify-center">
-                           <!-- Thumbnail virá aqui -->
+                    <div id="${mediaId}" class="media-bin-item bg-gray-700 p-2 rounded-lg flex items-center space-x-3">
+                        <div class="w-16 h-10 bg-black rounded flex items-center justify-center text-gray-500">
+                           <i class="fas fa-spinner fa-spin"></i>
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium truncate">${file.name}</p>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar"></div>
-                            </div>
                         </div>
+                        <button class="add-to-timeline-btn hidden flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 p-2 rounded" title="Adicionar à timeline">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                 `;
                 mediaBin.append(mediaItemHTML);
+                const mediaDiv = $(`#${mediaId}`);
                 
-                // Simula o progresso do upload
-                const progressBar = $(`#${mediaId} .progress-bar`);
-                let width = 0;
-                const interval = setInterval(function() {
-                    if (width >= 100) {
-                        clearInterval(interval);
-                        progressBar.parent().remove(); // Remove a barra de progresso após o "upload"
-                    } else {
-                        width++;
-                        progressBar.css('width', width + '%');
-                    }
-                }, 20);
-
+                const onMediaLoaded = (duration) => {
+                    mediaAssets[mediaId] = {
+                        element: mediaElement,
+                        type: file.type,
+                        duration: duration,
+                        name: file.name
+                    };
+                    mediaDiv.find('.add-to-timeline-btn').removeClass('hidden');
+                };
 
                 if (file.type.startsWith('video/')) {
-                    iconClass = 'fas fa-video text-indigo-400';
                     mediaElement = document.createElement('video');
                     mediaElement.preload = 'metadata';
-                    mediaElement.onloadedmetadata = function() {
-                        duration = mediaElement.duration * 1000; // em milissegundos
-                        $(`#${mediaId}`).data('duration', duration);
+                    mediaElement.muted = true; // Vídeos no preview são sempre mudos
+                    mediaElement.onloadedmetadata = () => {
+                        onMediaLoaded(mediaElement.duration * 1000);
                         generateVideoThumbnail(mediaElement, mediaId);
                     };
                 } else if (file.type.startsWith('image/')) {
-                    iconClass = 'fas fa-image text-purple-400';
                     mediaElement = document.createElement('img');
-                    duration = 5000; // Duração padrão para imagens (5s)
-                    $(`#${mediaId}`).data('duration', duration);
+                    mediaElement.onload = () => {
+                        const thumbnailImg = `<img src="${objectURL}" class="w-full h-full object-cover rounded">`;
+                        mediaDiv.find('.w-16.h-10').html(thumbnailImg);
+                        onMediaLoaded(5000); // Duração padrão de 5s para imagens
+                    };
                 } else if (file.type.startsWith('audio/')) {
-                    iconClass = 'fas fa-volume-up text-teal-400';
                     mediaElement = document.createElement('audio');
-                     mediaElement.preload = 'metadata';
-                    mediaElement.onloadedmetadata = function() {
-                        duration = mediaElement.duration * 1000;
-                        $(`#${mediaId}`).data('duration', duration);
+                    mediaElement.preload = 'metadata';
+                    mediaElement.onloadedmetadata = () => {
+                        mediaDiv.find('.w-16.h-10').html(`<i class="fas fa-volume-up fa-2x text-teal-300"></i>`);
+                        onMediaLoaded(mediaElement.duration * 1000);
                     };
                 }
                 
-                mediaElement.src = objectURL;
-                $(`#${mediaId}`).data('file', file);
-                $(`#${mediaId}`).data('type', file.type);
-                $(`#${mediaId} .fa-video, #${mediaId} .fa-image, #${mediaId} .fa-volume-up`).replaceWith(`<i class="${iconClass} fa-2x"></i>`);
-
-                // Adiciona evento de arrastar para o novo item
-                document.getElementById(mediaId).addEventListener('dragstart', handleDragStart);
+                if (mediaElement) {
+                    mediaElement.src = objectURL;
+                }
             }
             
             function generateVideoThumbnail(video, mediaId) {
-                const canvas = document.createElement('canvas');
+                const thumbCanvas = document.createElement('canvas');
                 video.onseeked = () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                    thumbCanvas.width = video.videoWidth;
+                    thumbCanvas.height = video.videoHeight;
+                    const thumbCtx = thumbCanvas.getContext('2d');
+                    thumbCtx.drawImage(video, 0, 0, thumbCanvas.width, thumbCanvas.height);
+                    const thumbnailUrl = thumbCanvas.toDataURL('image/jpeg');
                     const thumbnailImg = `<img src="${thumbnailUrl}" class="w-full h-full object-cover rounded">`;
-                    $(`#${mediaId} .w-16.h-10`).html(thumbnailImg);
+                    $(`#${mediaId}`).find('.w-16.h-10').html(thumbnailImg);
+                    video.currentTime = 0; // Reseta o tempo do vídeo
                 };
-                video.currentTime = 1; // Pega o frame em 1 segundo
+                video.currentTime = 1; // Pega o thumbnail no segundo 1
             }
 
+            mediaBin.on('click', '.add-to-timeline-btn', function() {
+                const mediaDiv = $(this).closest('.media-bin-item');
+                const mediaId = mediaDiv.attr('id');
+                const asset = mediaAssets[mediaId];
 
-            // Lógica de Arrastar e Soltar (Drag-and-Drop)
-            function handleDragStart(e) {
-                const id = e.target.id;
-                const type = $(`#${id}`).data('type');
-                const duration = $(`#${id}`).data('duration');
-                const name = $(`#${id} p`).text();
-
-                const dragData = { id, type, duration, name };
-                e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
-            }
-
-            timelineContainer.addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
-
-            timelineContainer.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const dropTime = timeline.getEventProperties(e).time.getTime();
-                const group = timeline.getEventProperties(e).group;
-                
-                if (group === null) return; // Não soltou em uma trilha válida
-
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                
-                // Valida se o tipo de mídia corresponde à trilha
-                if ((data.type.startsWith('video/') || data.type.startsWith('image/')) && !group.startsWith('video')) {
-                    alert('Você só pode soltar vídeos e imagens em trilhas de vídeo.');
-                    return;
-                }
-                if (data.type.startsWith('audio/') && !group.startsWith('audio')) {
-                    alert('Você só pode soltar áudio em trilhas de áudio.');
+                if (!asset || isNaN(asset.duration) || asset.duration <= 0) {
+                    console.error("Duração de mídia inválida para:", asset.name);
                     return;
                 }
 
-                items.add({
+                let targetGroup;
+                if (asset.type.startsWith('video/') || asset.type.startsWith('image/')) {
+                    targetGroup = 'video1';
+                } else if (asset.type.startsWith('audio/')) {
+                    targetGroup = 'audio1';
+                }
+
+                if (!targetGroup) return;
+
+                const itemsInGroup = items.get({ filter: item => item.group === targetGroup });
+                const lastItem = itemsInGroup.reduce((last, current) => (current.end > (last ? last.end : 0) ? current : last), null);
+                const startTime = lastItem ? lastItem.end : 0;
+
+                const newItem = {
                     id: new Date().getTime(),
-                    group: group,
-                    content: data.name,
-                    start: dropTime,
-                    end: dropTime + data.duration,
+                    group: targetGroup,
+                    content: asset.name,
+                    start: startTime,
+                    end: startTime + asset.duration,
+                    mediaId: mediaId, // Referência ao asset original
                     type: 'range'
-                });
+                };
+                items.add(newItem);
+                timeline.focus(newItem.id);
+                updateTotalDuration();
             });
 
+            // --- MÓDULO 2: MOTOR DE PRÉ-VISUALIZAÇÃO (PLAYBACK) ---
+            
+            let isPlaying = false;
+            let currentTime = 0; // em milissegundos
+            let lastFrameTime = 0;
+            let animationFrameId;
+            let totalDuration = 0;
+
+            const playPauseBtn = $('#play-pause-btn');
+            const currentTimeEl = $('#current-time');
+            const totalDurationEl = $('#total-duration');
+            const playbackProgress = $('#playback-progress');
+
+            function formatTime(ms) {
+                const seconds = Math.floor(ms / 1000);
+                const min = Math.floor(seconds / 60);
+                const sec = seconds % 60;
+                return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            }
+
+            function updateTotalDuration() {
+                const allItems = items.get();
+                if (allItems.length === 0) {
+                    totalDuration = 0;
+                } else {
+                    totalDuration = Math.max(...allItems.map(item => item.end));
+                }
+                totalDurationEl.text(formatTime(totalDuration));
+            }
+
+            function togglePlayPause() {
+                isPlaying = !isPlaying;
+                if (isPlaying) {
+                    if (currentTime >= totalDuration) {
+                        currentTime = 0; // Reinicia se estiver no fim
+                    }
+                    playPauseBtn.find('i').removeClass('fa-play').addClass('fa-pause');
+                    lastFrameTime = performance.now();
+                    renderLoop();
+                    playActiveAudio();
+                } else {
+                    playPauseBtn.find('i').removeClass('fa-pause').addClass('fa-play');
+                    cancelAnimationFrame(animationFrameId);
+                    pauseAllAudio();
+                }
+            }
+
+            function renderLoop(now) {
+                if (!isPlaying) return;
+
+                const delta = now - lastFrameTime;
+                lastFrameTime = now;
+                currentTime += delta;
+
+                if (currentTime > totalDuration) {
+                    currentTime = totalDuration;
+                    togglePlayPause(); // Pausa no final
+                }
+
+                // Atualiza a UI
+                timeline.setCustomTime(currentTime, 'playback-time');
+                currentTimeEl.text(formatTime(currentTime));
+                playbackProgress.css('width', `${(currentTime / totalDuration) * 100}%`);
+                
+                // Lógica de renderização
+                drawFrame();
+                
+                animationFrameId = requestAnimationFrame(renderLoop);
+            }
+            
+            function drawFrame() {
+                const activeItems = items.get({
+                    filter: item => item.start <= currentTime && item.end > currentTime
+                });
+
+                const visualItem = activeItems
+                    .filter(item => mediaAssets[item.mediaId]?.type.startsWith('video/') || mediaAssets[item.mediaId]?.type.startsWith('image/'))
+                    .sort((a,b) => groups.get(b.group).value - groups.get(a.group).value)[0]; // Pega o do topo
+
+                if (visualItem) {
+                    const asset = mediaAssets[visualItem.mediaId];
+                    const element = asset.element;
+
+                    if (asset.type.startsWith('video/')) {
+                        // Define o tamanho do canvas para o tamanho do vídeo na primeira vez
+                        if (canvas.width !== element.videoWidth) {
+                            canvas.width = element.videoWidth;
+                            canvas.height = element.videoHeight;
+                        }
+                        const videoTime = (currentTime - visualItem.start) / 1000;
+                        element.currentTime = videoTime;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+                    } else if (asset.type.startsWith('image/')) {
+                        if (canvas.width !== element.naturalWidth) {
+                            canvas.width = element.naturalWidth;
+                            canvas.height = element.naturalHeight;
+                        }
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+                    }
+                } else {
+                    // Se não houver item visual, limpa o canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            
+            function playActiveAudio() {
+                const activeAudioItems = items.get({
+                    filter: item => mediaAssets[item.mediaId]?.type.startsWith('audio/') && item.start <= currentTime && item.end > currentTime
+                });
+
+                activeAudioItems.forEach(item => {
+                    const asset = mediaAssets[item.mediaId];
+                    const element = asset.element;
+                    const audioTime = (currentTime - item.start) / 1000;
+                    element.currentTime = audioTime;
+                    element.play();
+                });
+            }
+
+            function pauseAllAudio() {
+                Object.values(mediaAssets).forEach(asset => {
+                    if (asset.type.startsWith('audio/')) {
+                        asset.element.pause();
+                    }
+                });
+            }
+
+            playPauseBtn.on('click', togglePlayPause);
 
             // Inicializa a aplicação
             initializeTimeline();
+            updateTotalDuration();
         });
     </script>
 </body>
