@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor de Imagem Online</title>
     
-    <!-- Biblioteca Fabric.js para manipulação do Canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     
-    <!-- Biblioteca de Ícones (Font Awesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Fontes do Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -104,6 +101,12 @@
             color: var(--primary-color);
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
+        }
+        
+        .panel-section h4 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
         }
 
         /* Controles e Botões */
@@ -202,13 +205,20 @@
             padding: 8px 12px;
             cursor: pointer;
             border-radius: 8px;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, color 0.2s;
             color: #555;
         }
 
         .tool-btn:hover {
             background-color: var(--secondary-color);
             color: var(--primary-color);
+        }
+
+        /* Estilo para ferramenta ativa */
+        .tool-btn.active-tool, .btn.active-tool {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
         }
         
         /* Painel de Camadas */
@@ -224,7 +234,7 @@
             margin-bottom: 5px;
             background-color: var(--secondary-color);
             border-radius: 6px;
-            cursor: grab;
+            cursor: pointer;
             border: 1px solid transparent;
             transition: background-color 0.2s;
         }
@@ -341,6 +351,50 @@
                 <button id="url-image-btn" class="btn btn-secondary">Carregar de URL</button>
                 <button id="new-image-btn" class="btn btn-secondary">Nova Imagem</button>
             </div>
+
+            <!-- INÍCIO: NOVAS FERRAMENTAS DE DESENHO -->
+            <div class="panel-section">
+                <h3><i class="fas fa-pencil-ruler"></i> Desenho & Formas</h3>
+                <button id="select-tool-btn" class="btn active-tool">Selecionar</button>
+                <button id="freehand-draw-btn" class="btn">Desenho Livre</button>
+                
+                <div id="drawing-controls" style="display: none;">
+                    <div class="control-group">
+                        <label for="drawing-width">Largura da Linha:</label>
+                        <input type="range" id="drawing-width" min="1" max="100" value="5">
+                    </div>
+                    <div class="control-group">
+                        <label for="drawing-color">Cor da Linha:</label>
+                        <input type="color" id="drawing-color" value="#000000">
+                    </div>
+                </div>
+            
+                <div id="shape-tools">
+                    <h4>Formas Geométricas</h4>
+                    <div class="btn-group">
+                        <button class="btn shape-btn" data-shape="rect" title="Retângulo"><i class="far fa-square"></i></button>
+                        <button class="btn shape-btn" data-shape="circle" title="Círculo"><i class="far fa-circle"></i></button>
+                        <button class="btn shape-btn" data-shape="triangle" title="Triângulo"><i class="fas fa-play" style="transform: rotate(-90deg);"></i></button>
+                        <button class="btn shape-btn" data-shape="star" title="Estrela"><i class="far fa-star"></i></button>
+                    </div>
+                </div>
+            
+                <div id="shape-controls" style="display: none;">
+                    <div class="control-group">
+                        <label for="shape-stroke-width">Largura da Borda:</label>
+                        <input type="range" id="shape-stroke-width" min="0" max="50" value="2">
+                    </div>
+                    <div class="control-group">
+                        <label for="shape-stroke-color">Cor da Borda:</label>
+                        <input type="color" id="shape-stroke-color" value="#000000">
+                    </div>
+                    <div class="control-group">
+                        <label for="shape-fill-color">Cor de Preenchimento:</label>
+                        <input type="color" id="shape-fill-color" value="#ffffff">
+                    </div>
+                </div>
+            </div>
+            <!-- FIM: NOVAS FERRAMENTAS DE DESENHO -->
 
             <div class="panel-section">
                 <h3><i class="fas fa-crop-alt"></i> Transformar</h3>
@@ -504,11 +558,23 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const canvas = new fabric.Canvas('c');
+        const canvas = new fabric.Canvas('c', {
+            // Melhora a performance de renderização de objetos durante o desenho
+            renderOnAddRemove: false 
+        });
         const canvasWrapper = document.getElementById('canvas-wrapper');
         
         let history = [];
         let historyIndex = -1;
+        
+        // --- NOVAS VARIÁVEIS DE ESTADO PARA FERRAMENTAS ---
+        let currentMode = 'select'; // select, pan, freehand, shape
+        let isDrawingShape = false;
+        let shapeToDraw = ''; // rect, circle, triangle, star
+        let shapeStartPoint;
+        let currentShape;
+        
+        // --- Variável de estado para o modo Pan (Mover) ---
         let isPanMode = false;
         let lastClientX, lastClientY;
 
@@ -555,6 +621,8 @@
         canvas.on('object:modified', saveState);
         canvas.on('object:added', saveState);
         canvas.on('object:removed', saveState);
+        // Salva o estado após o desenho livre ser concluído
+        canvas.on('path:created', saveState);
 
         document.getElementById('undo-btn').addEventListener('click', undo);
         document.getElementById('redo-btn').addEventListener('click', redo);
@@ -602,12 +670,13 @@
             canvas.setHeight(parseInt(height));
             canvas.renderAll();
             newImageModal.style.display = 'none';
+            history = [];
+            historyIndex = -1;
             saveState();
         });
         
         document.getElementById('load-from-url-btn').addEventListener('click', () => {
             const url = document.getElementById('image-url').value;
-            // Usando um proxy para evitar problemas de CORS. Para um projeto real, um backend próprio seria ideal.
             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
             fabric.Image.fromURL(proxyUrl, (img) => {
                 addImageToCanvas(img);
@@ -642,7 +711,7 @@
             saveModal.style.display = 'none';
         });
 
-        // --- Zoom e Pan ---
+        // --- Zoom ---
         document.getElementById('zoom-in-btn').addEventListener('click', () => {
             canvas.setZoom(canvas.getZoom() * 1.1);
         });
@@ -653,41 +722,227 @@
             canvas.setZoom(1);
             resizeCanvas();
             if (canvas.getObjects().length > 0) {
-                canvas.centerObject(canvas.getObjects()[0]); // Centraliza o primeiro objeto
+                 const objects = canvas.getObjects();
+                 const group = new fabric.Group(objects);
+                 canvas.centerObject(group);
+                 canvas.viewportTransform[4] = (canvas.width - group.width * canvas.getZoom()) / 2;
+                 canvas.viewportTransform[5] = (canvas.height - group.height * canvas.getZoom()) / 2;
+                 canvas.renderAll();
             }
         });
+        
+        // --- INÍCIO: GERENCIAMENTO DE MODO DE FERRAMENTA ---
+        const toolButtons = {
+            select: document.getElementById('select-tool-btn'),
+            pan: document.getElementById('pan-btn'),
+            freehand: document.getElementById('freehand-draw-btn'),
+            shapes: Array.from(document.getElementsByClassName('shape-btn'))
+        };
 
-        document.getElementById('pan-btn').addEventListener('click', () => {
-            isPanMode = !isPanMode;
-            canvas.selection = !isPanMode;
-            canvas.defaultCursor = isPanMode ? 'grab' : 'default';
-            document.getElementById('pan-btn').style.backgroundColor = isPanMode ? 'var(--primary-color)' : '';
-            document.getElementById('pan-btn').style.color = isPanMode ? '#fff' : '';
+        const toolControls = {
+            drawing: document.getElementById('drawing-controls'),
+            shape: document.getElementById('shape-controls')
+        };
+        
+        function setMode(newMode, shapeType = '') {
+            currentMode = newMode;
+            
+            // Reset all modes
+            isPanMode = false;
+            canvas.isDrawingMode = false;
+            shapeToDraw = '';
+            canvas.selection = true;
+            canvas.defaultCursor = 'default';
+
+            // Reset UI
+            Object.values(toolButtons).flat().forEach(btn => btn.classList.remove('active-tool'));
+            Object.values(toolControls).forEach(c => c.style.display = 'none');
+            toolButtons.pan.classList.remove('active-tool'); // Pan é um tool-btn, não um btn
+
+            // Activate the new mode
+            switch(newMode) {
+                case 'select':
+                    toolButtons.select.classList.add('active-tool');
+                    break;
+                case 'pan':
+                    isPanMode = true;
+                    canvas.selection = false;
+                    canvas.defaultCursor = 'grab';
+                    toolButtons.pan.classList.add('active-tool');
+                    break;
+                case 'freehand':
+                    canvas.isDrawingMode = true;
+                    toolControls.drawing.style.display = 'block';
+                    toolButtons.freehand.classList.add('active-tool');
+                    updateDrawingBrush();
+                    break;
+                case 'shape':
+                    shapeToDraw = shapeType;
+                    canvas.selection = false;
+                    canvas.defaultCursor = 'crosshair';
+                    toolControls.shape.style.display = 'block';
+                    const shapeBtn = toolButtons.shapes.find(b => b.dataset.shape === shapeType);
+                    if(shapeBtn) shapeBtn.classList.add('active-tool');
+                    break;
+            }
+        }
+
+        toolButtons.select.addEventListener('click', () => setMode('select'));
+        toolButtons.pan.addEventListener('click', () => setMode(currentMode === 'pan' ? 'select' : 'pan'));
+        toolButtons.freehand.addEventListener('click', () => setMode(currentMode === 'freehand' ? 'select' : 'freehand'));
+        toolButtons.shapes.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const shapeType = btn.dataset.shape;
+                if (currentMode === 'shape' && shapeToDraw === shapeType) {
+                    setMode('select');
+                } else {
+                    setMode('shape', shapeType);
+                }
+            });
         });
 
-        canvas.on('mouse:down', (opt) => {
-            if (isPanMode) {
+        // --- Lógica de Desenho Livre ---
+        function updateDrawingBrush() {
+            if (canvas.freeDrawingBrush) {
+                canvas.freeDrawingBrush.color = document.getElementById('drawing-color').value;
+                canvas.freeDrawingBrush.width = parseInt(document.getElementById('drawing-width').value, 10);
+            }
+        }
+        document.getElementById('drawing-color').addEventListener('input', updateDrawingBrush);
+        document.getElementById('drawing-width').addEventListener('input', updateDrawingBrush);
+        
+        // --- Lógica de Desenho de Formas ---
+        canvas.on('mouse:down', (o) => {
+            if (currentMode === 'pan') {
                 canvas.defaultCursor = 'grabbing';
-                lastClientX = opt.e.clientX;
-                lastClientY = opt.e.clientY;
+                lastClientX = o.e.clientX;
+                lastClientY = o.e.clientY;
+                return;
+            }
+
+            if (currentMode !== 'shape' || !shapeToDraw) return;
+            
+            isDrawingShape = true;
+            shapeStartPoint = canvas.getPointer(o.e);
+            
+            const shapeOptions = {
+                left: shapeStartPoint.x,
+                top: shapeStartPoint.y,
+                originX: 'left',
+                originY: 'top',
+                stroke: document.getElementById('shape-stroke-color').value,
+                strokeWidth: parseInt(document.getElementById('shape-stroke-width').value, 10),
+                fill: document.getElementById('shape-fill-color').value,
+                width: 0,
+                height: 0,
+                selectable: false // Impede a seleção enquanto desenha
+            };
+
+            switch (shapeToDraw) {
+                case 'rect':
+                    currentShape = new fabric.Rect(shapeOptions);
+                    break;
+                case 'circle':
+                    shapeOptions.rx = 0;
+                    shapeOptions.ry = 0;
+                    currentShape = new fabric.Circle(shapeOptions);
+                    break;
+                case 'triangle':
+                    currentShape = new fabric.Triangle(shapeOptions);
+                    break;
+                case 'star':
+                    // A estrela é um polígono, tratado de forma diferente
+                    currentShape = new fabric.Polygon([
+                        {x: 0, y: 0}, {x: 0, y: 0}, {x: 0, y: 0}, {x: 0, y: 0}, {x: 0, y: 0}
+                    ], {
+                        ...shapeOptions,
+                        objectCaching: false // Necessário para redimensionar polígonos dinamicamente
+                    });
+                    break;
+            }
+            if (currentShape) {
+                canvas.add(currentShape);
             }
         });
-        canvas.on('mouse:move', (opt) => {
-            if (isPanMode && opt.e.buttons === 1) {
-                const deltaX = opt.e.clientX - lastClientX;
-                const deltaY = opt.e.clientY - lastClientY;
+
+        canvas.on('mouse:move', (o) => {
+            if (currentMode === 'pan' && o.e.buttons === 1) {
+                const deltaX = o.e.clientX - lastClientX;
+                const deltaY = o.e.clientY - lastClientY;
                 canvas.relativePan({ x: deltaX, y: deltaY });
-                lastClientX = opt.e.clientX;
-                lastClientY = opt.e.clientY;
+                lastClientX = o.e.clientX;
+                lastClientY = o.e.clientY;
+                return;
             }
+
+            if (!isDrawingShape || !currentShape) return;
+            
+            const pointer = canvas.getPointer(o.e);
+            const width = Math.abs(pointer.x - shapeStartPoint.x);
+            const height = Math.abs(pointer.y - shapeStartPoint.y);
+
+            // Ajusta a posição para o desenho em qualquer direção
+            currentShape.set({
+                left: Math.min(pointer.x, shapeStartPoint.x),
+                top: Math.min(pointer.y, shapeStartPoint.y)
+            });
+
+            if (shapeToDraw === 'star') {
+                const outerRadius = Math.max(width, height) / 2;
+                const innerRadius = outerRadius / 2;
+                const points = [];
+                const angle = Math.PI / 5; // 36 graus
+                for (let i = 0; i < 10; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const x = radius * Math.sin(i * angle);
+                    const y = -radius * Math.cos(i * angle);
+                    points.push({ x: x, y: y });
+                }
+                // Reposiciona o polígono para que o centro corresponda ao centro do retângulo de desenho
+                currentShape.set({ points: points }).setCoords();
+                currentShape.set({
+                    left: shapeStartPoint.x + (pointer.x - shapeStartPoint.x) / 2,
+                    top: shapeStartPoint.y + (pointer.y - shapeStartPoint.y) / 2,
+                    originX: 'center',
+                    originY: 'center'
+                });
+            } else if (shapeToDraw === 'circle') {
+                currentShape.set({
+                    width: width,
+                    height: height,
+                    rx: width / 2,
+                    ry: height / 2
+                });
+            } else { // Retângulo e Triângulo
+                currentShape.set({ width: width, height: height });
+            }
+
+            canvas.requestRenderAll();
         });
-        canvas.on('mouse:up', () => {
-            if (isPanMode) {
+
+        canvas.on('mouse:up', (o) => {
+            if (currentMode === 'pan') {
                 canvas.defaultCursor = 'grab';
             }
-        });
 
-        // --- Filtros e Ajustes ---
+            if (!isDrawingShape || !currentShape) return;
+            
+            isDrawingShape = false;
+            currentShape.set({ selectable: true }); // Torna o objeto selecionável
+            currentShape.setCoords();
+            canvas.renderAll();
+            
+            saveState();
+            updateLayerList();
+            
+            currentShape = null;
+            // Opcional: voltar para o modo de seleção após desenhar
+            // setMode('select'); 
+        });
+        // --- FIM: LÓGICA DE DESENHO ---
+
+
+        // --- Filtros e Ajustes (Código existente) ---
         const filters = ['brightness', 'contrast', 'saturation', 'hue', 'blur', 'noise'];
         const filterClasses = {
             brightness: fabric.Image.filters.Brightness,
@@ -702,15 +957,6 @@
             const obj = canvas.getActiveObject();
             if (obj && obj.type === 'image') {
                 obj.filters[index] = filter;
-                obj.applyFilters();
-                canvas.renderAll();
-            }
-        }
-
-        function applyFilterValue(index, prop, value) {
-            const obj = canvas.getActiveObject();
-            if (obj && obj.type === 'image' && obj.filters[index]) {
-                obj.filters[index][prop] = value;
                 obj.applyFilters();
                 canvas.renderAll();
             }
@@ -751,7 +997,6 @@
             }
         });
         
-        // Filtros predefinidos
         document.getElementById('filter-select').addEventListener('change', (e) => {
             const obj = canvas.getActiveObject();
             if (!obj || obj.type !== 'image') return;
@@ -763,7 +1008,6 @@
                 vintage: new fabric.Image.filters.Vintage(),
             };
             
-            // Remove apenas filtros predefinidos anteriores
             obj.filters = obj.filters.filter(f => !['Grayscale', 'Sepia', 'Invert', 'Vintage'].includes(f.type));
 
             if (e.target.value !== 'none') {
@@ -776,7 +1020,7 @@
         });
 
 
-        // --- Transformações ---
+        // --- Transformações (Código existente) ---
         let cropRect;
         document.getElementById('crop-btn').addEventListener('click', (e) => {
             if (e.target.innerText === 'Confirmar Recorte') {
@@ -786,6 +1030,7 @@
 
             const obj = canvas.getActiveObject();
             if (!obj) return;
+            setMode('select');
 
             document.getElementById('crop-btn').innerText = 'Confirmar Recorte';
             document.getElementById('cancel-crop-btn').style.display = 'inline-block';
@@ -869,9 +1114,10 @@
             }
         });
 
-        // --- Texto ---
+        // --- Texto (Código existente) ---
         const textControls = document.getElementById('text-controls');
         document.getElementById('add-text-btn').addEventListener('click', () => {
+            setMode('select');
             const text = new fabric.IText('Edite este texto', {
                 left: canvas.width / 2,
                 top: canvas.height / 2,
@@ -896,7 +1142,6 @@
                 document.getElementById('font-family').value = obj.fontFamily;
                 document.getElementById('text-color').value = obj.fill;
                 
-                // Atualiza o estado visual dos botões de estilo
                 const boldBtn = document.getElementById('text-bold-btn');
                 const italicBtn = document.getElementById('text-italic-btn');
                 
@@ -938,33 +1183,47 @@
             }
         });
 
-        // --- Camadas ---
+        // --- Camadas (Código corrigido) ---
         const layerList = document.getElementById('layer-list');
         function updateLayerList() {
             layerList.innerHTML = '';
-            canvas.getObjects().slice().reverse().forEach((obj, index) => {
+            const objects = canvas.getObjects(); // Obter referência atualizada dos objetos
+            objects.slice().reverse().forEach((obj, index) => {
+                const originalIndex = objects.length - 1 - index;
                 const li = document.createElement('li');
-                li.dataset.index = canvas.getObjects().length - 1 - index;
+                li.dataset.index = originalIndex;
                 
                 const visibilityIcon = document.createElement('i');
                 visibilityIcon.className = `fas ${obj.visible ? 'fa-eye' : 'fa-eye-slash'} visibility-toggle`;
                 visibilityIcon.onclick = () => {
-                    obj.set('visible', !obj.visible);
-                    canvas.renderAll();
-                    updateLayerList();
-                    saveState();
+                    const objectToToggle = canvas.getObjects()[originalIndex];
+                    if (objectToToggle) {
+                        objectToToggle.set('visible', !objectToToggle.visible);
+                        canvas.renderAll();
+                        updateLayerList();
+                        saveState();
+                    }
                 };
 
                 const name = document.createElement('span');
                 name.className = 'layer-name';
-                name.textContent = obj.type === 'i-text' ? `Texto: "${obj.text.substring(0,15)}..."` : `Camada ${obj.type}`;
+                let layerName = `Camada ${obj.type}`;
+                if (obj.type === 'i-text') {
+                    layerName = `Texto: "${obj.text.substring(0,15)}..."`;
+                } else if (obj.type === 'path') {
+                    layerName = 'Desenho Livre';
+                }
+                name.textContent = layerName;
                 
                 const deleteIcon = document.createElement('i');
                 deleteIcon.className = 'fas fa-trash-alt delete-layer';
                 deleteIcon.onclick = () => {
-                    canvas.remove(obj);
-                    updateLayerList();
-                    saveState();
+                    const objectToDelete = canvas.getObjects()[originalIndex];
+                    if (objectToDelete) {
+                        canvas.remove(objectToDelete);
+                        // O saveState é chamado pelo evento 'object:removed'
+                        updateLayerList();
+                    }
                 };
 
                 li.appendChild(visibilityIcon);
@@ -975,9 +1234,18 @@
                     li.classList.add('active');
                 }
 
-                li.addEventListener('click', () => {
-                    canvas.setActiveObject(obj);
-                    canvas.renderAll();
+                li.addEventListener('click', (e) => {
+                    // Impede que o manipulador de clique seja acionado ao clicar nos ícones dentro do li
+                    if (e.target.classList.contains('visibility-toggle') || e.target.classList.contains('delete-layer')) {
+                        return;
+                    }
+                    setMode('select');
+                    // Obtém o objeto pelo seu índice do dataset para evitar referências obsoletas
+                    const objectToSelect = canvas.getObjects()[originalIndex];
+                    if (objectToSelect) {
+                        canvas.setActiveObject(objectToSelect);
+                        canvas.renderAll();
+                    }
                 });
 
                 layerList.appendChild(li);
@@ -1005,7 +1273,7 @@
             }
         });
 
-        // --- Fechar Modals ---
+        // --- Fechar Modals (Código existente) ---
         document.querySelectorAll('.modal .close-btn').forEach(btn => {
             btn.onclick = () => {
                 btn.closest('.modal').style.display = 'none';
