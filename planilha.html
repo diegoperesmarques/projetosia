@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilha Online</title>
+
+    <!-- Tailwind CSS para estilização rápida e moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Handsontable: A biblioteca principal para a grade da planilha -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    
+    <!-- SheetJS (js-xlsx): Para importar e exportar arquivos .xlsx -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Chart.js: Para gerar gráficos a partir dos dados -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Estilos personalizados para complementar o Tailwind */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+        }
+        #spreadsheet-container {
+            width: 100%;
+            height: 65vh; /* Altura da planilha */
+            overflow: auto;
+        }
+        #chart-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .toolbar-btn {
+            @apply inline-flex items-center justify-center p-2 bg-white rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all duration-150;
+        }
+        .toolbar-separator {
+            @apply w-px h-6 bg-gray-300 mx-2;
+        }
+        /* Estilos para formatação de célula */
+        .cell-bold { font-weight: bold; }
+        .cell-italic { font-style: italic; }
+        .cell-underline { text-decoration: underline; }
+        .cell-align-left { text-align: left; }
+        .cell-align-center { text-align: center; }
+        .cell-align-right { text-align: right; }
+
+        /* Modal para seleção de gráfico */
+        .modal-overlay {
+            @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300;
+        }
+        .modal-content {
+            @apply bg-white p-6 rounded-lg shadow-xl transform transition-all duration-300 scale-95;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-full mx-auto bg-white rounded-lg shadow-lg">
+        <!-- Barra de Ferramentas Superior -->
+        <div id="toolbar" class="p-2 border-b border-gray-200 flex items-center flex-wrap gap-2 bg-gray-50">
+            <!-- Ferramentas de Arquivo -->
+            <input type="file" id="import-file" class="hidden" accept=".xlsx, .xls, .csv">
+            <button id="import-btn" class="toolbar-btn" title="Importar Arquivo (.xlsx, .csv)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="export-btn" class="toolbar-btn" title="Exportar para .xlsx">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </button>
+            
+            <div class="toolbar-separator"></div>
+
+            <!-- Ferramentas de Edição -->
+            <button id="add-row-btn" class="toolbar-btn" title="Adicionar Linha">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+            <button id="add-col-btn" class="toolbar-btn" title="Adicionar Coluna">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3m0 0h3m-3 0v3m0-3V9m9 3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+
+            <div class="toolbar-separator"></div>
+
+            <!-- Ferramentas de Formatação -->
+            <button id="bold-btn" class="toolbar-btn" title="Negrito">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.25 3.25A.75.75 0 018 2.5h3.5a.75.75 0 010 1.5H9.5v3.25h1.25a2.75 2.75 0 010 5.5H9.5v4.25h2a.75.75 0 010 1.5H8a.75.75 0 01-.75-.75V3.25zM9.5 9.5h1.25a1.25 1.25 0 000-2.5H9.5v2.5z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="italic-btn" class="toolbar-btn" title="Itálico">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 2.75a.75.75 0 01.75.75v.5h1.25a.75.75 0 010 1.5H9.5v8.5h1.25a.75.75 0 010 1.5H6.75a.75.75 0 010-1.5h1.25V5.5H6.75a.75.75 0 010-1.5h2V3.5a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="underline-btn" class="toolbar-btn" title="Sublinhado">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 2h6a1.5 1.5 0 011.5 1.5V9a1.5 1.5 0 01-1.5 1.5h-1.655a.75.75 0 000 1.5H13A3 3 0 0016 9V3.5A3 3 0 0013 0H7a3 3 0 00-3 3.5V9a3 3 0 003 3h1.655a.75.75 0 000-1.5H7A1.5 1.5 0 015.5 9V3.5zM4 15a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" /></svg>
+            </button>
+
+            <div class="toolbar-separator"></div>
+            
+            <!-- Alinhamento -->
+            <button id="align-left-btn" class="toolbar-btn" title="Alinhar à Esquerda">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="align-center-btn" class="toolbar-btn" title="Centralizar">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM5.5 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 015.5 10zm-3.25 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="align-right-btn" class="toolbar-btn" title="Alinhar à Direita">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM9.25 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zm-7 5.25A.75.75 0 012.75 14h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>
+            </button>
+
+            <div class="toolbar-separator"></div>
+
+            <!-- Gráficos -->
+            <button id="chart-btn" class="toolbar-btn" title="Gerar Gráfico">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" /><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" /></svg>
+            </button>
+        </div>
+
+        <!-- Container da Planilha -->
+        <div id="spreadsheet-container"></div>
+    </div>
+
+    <!-- Container do Gráfico -->
+    <div id="chart-container" class="hidden">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <!-- Modal de Seleção de Gráfico -->
+    <div id="chart-modal" class="modal-overlay hidden opacity-0">
+        <div class="modal-content scale-100">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Selecione o Tipo de Gráfico</h3>
+            <div class="flex justify-center gap-4">
+                <button data-chart-type="bar" class="chart-type-btn toolbar-btn p-4">Barras</button>
+                <button data-chart-type="line" class="chart-type-btn toolbar-btn p-4">Linhas</button>
+                <button data-chart-type="pie" class="chart-type-btn toolbar-btn p-4">Pizza</button>
+            </div>
+            <div class="mt-6 text-right">
+                <button id="cancel-chart-btn" class="text-gray-600 hover:text-gray-900 px-4 py-2 rounded">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- 1. INICIALIZAÇÃO ---
+        const spreadsheetContainer = document.getElementById('spreadsheet-container');
+        const chartContainer = document.getElementById('chart-container');
+        const chartCanvas = document.getElementById('myChart');
+        const chartModal = document.getElementById('chart-modal');
+        let myChart = null; // Variável para armazenar a instância do gráfico
+
+        // Dados iniciais para a planilha
+        const initialData = [
+            ['Produto', 'Jan', 'Fev', 'Mar', 'Total'],
+            ['Notebooks', 10, 20, 30, '=SUM(B2:D2)'],
+            ['Monitores', 15, 25, 35, '=SUM(B3:D3)'],
+            ['Teclados', 5, 8, 13, '=SUM(B4:D4)'],
+            ['Total Vendas', '=SUM(B2:B4)', '=SUM(C2:C4)', '=SUM(D2:D4)', '=SUM(E2:E4)']
+        ];
+
+        // Configuração e criação da instância do Handsontable
+        const hot = new Handsontable(spreadsheetContainer, {
+            data: initialData,
+            rowHeaders: true,
+            colHeaders: true,
+            height: 'auto',
+            width: 'auto',
+            licenseKey: 'non-commercial-and-evaluation', // Chave para uso não comercial
+            contextMenu: true, // Habilita menu de clique direito
+            manualColumnResize: true, // Permite redimensionar colunas
+            manualRowResize: true, // Permite redimensionar linhas
+            formulas: { // Habilita o motor de fórmulas
+                engine: HyperFormula
+            },
+            minSpareRows: 1, // Sempre mantém uma linha vazia no final
+            minSpareCols: 1, // Sempre mantém uma coluna vazia no final
+            stretchH: 'all', // Estica as colunas para preencher o container
+        });
+
+        // --- 2. LÓGICA DA BARRA DE FERRAMENTAS ---
+
+        // Função auxiliar para aplicar/remover classes CSS nas células selecionadas
+        function toggleCellClass(className) {
+            const selected = hot.getSelected();
+            if (!selected) return;
+
+            selected.forEach(range => {
+                for (let row = range.from.row; row <= range.to.row; row++) {
+                    for (let col = range.from.col; col <= range.to.col; col++) {
+                        const cellMeta = hot.getCellMeta(row, col);
+                        const currentClassName = cellMeta.className || '';
+                        let newClassName;
+                        
+                        if (currentClassName.includes(className)) {
+                            // Remove a classe se já existir
+                            newClassName = currentClassName.replace(new RegExp(`\\s?${className}`), '').trim();
+                        } else {
+                            // Adiciona a classe
+                            newClassName = `${currentClassName} ${className}`.trim();
+                        }
+                        hot.setCellMeta(row, col, 'className', newClassName);
+                    }
+                }
+            });
+            hot.render(); // Re-renderiza a tabela para aplicar as mudanças
+        }
+        
+        // Função para aplicar alinhamento (remove outros alinhamentos antes de aplicar o novo)
+        function applyAlignment(alignClass) {
+            const selected = hot.getSelected();
+            if (!selected) return;
+            const alignClasses = ['cell-align-left', 'cell-align-center', 'cell-align-right'];
+
+            selected.forEach(range => {
+                for (let row = range.from.row; row <= range.to.row; row++) {
+                    for (let col = range.from.col; col <= range.to.col; col++) {
+                        let currentClassName = hot.getCellMeta(row, col).className || '';
+                        // Remove todas as classes de alinhamento existentes
+                        alignClasses.forEach(c => {
+                            currentClassName = currentClassName.replace(new RegExp(`\\s?${c}`), '');
+                        });
+                        // Adiciona a nova classe de alinhamento
+                        const newClassName = `${currentClassName.trim()} ${alignClass}`.trim();
+                        hot.setCellMeta(row, col, 'className', newClassName);
+                    }
+                }
+            });
+            hot.render();
+        }
+
+        // Event Listeners dos botões de formatação
+        document.getElementById('bold-btn').addEventListener('click', () => toggleCellClass('cell-bold'));
+        document.getElementById('italic-btn').addEventListener('click', () => toggleCellClass('cell-italic'));
+        document.getElementById('underline-btn').addEventListener('click', () => toggleCellClass('cell-underline'));
+        
+        document.getElementById('align-left-btn').addEventListener('click', () => applyAlignment('cell-align-left'));
+        document.getElementById('align-center-btn').addEventListener('click', () => applyAlignment('cell-align-center'));
+        document.getElementById('align-right-btn').addEventListener('click', () => applyAlignment('cell-align-right'));
+
+        // Adicionar Linha/Coluna
+        document.getElementById('add-row-btn').addEventListener('click', () => {
+            const selectedLast = hot.getSelectedLast();
+            const insertIndex = selectedLast ? selectedLast.row + 1 : hot.countRows();
+            hot.alter('insert_row_below', insertIndex, 1);
+        });
+        document.getElementById('add-col-btn').addEventListener('click', () => {
+            const selectedLast = hot.getSelectedLast();
+            const insertIndex = selectedLast ? selectedLast.col + 1 : hot.countCols();
+            hot.alter('insert_col_end', insertIndex, 1);
+        });
+
+        // --- 3. IMPORTAÇÃO E EXPORTAÇÃO (SheetJS) ---
+
+        // Exportar
+        document.getElementById('export-btn').addEventListener('click', () => {
+            // Pega todos os dados da planilha, incluindo cabeçalhos
+            const data = [hot.getColHeader(), ...hot.getData()];
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+            // Gera e baixa o arquivo .xlsx
+            XLSX.writeFile(workbook, "PlanilhaOnline.xlsx");
+        });
+
+        // Importar
+        const importBtn = document.getElementById('import-btn');
+        const importFileInput = document.getElementById('import-file');
+        importBtn.addEventListener('click', () => importFileInput.click()); // Aciona o input de arquivo
+        
+        importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (jsonData && jsonData.length > 0) {
+                    hot.loadData(jsonData); // Carrega os novos dados na planilha
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            importFileInput.value = ''; // Limpa o input para poder importar o mesmo arquivo novamente
+        });
+
+        // --- 4. GERAÇÃO DE GRÁFICOS (Chart.js) ---
+        
+        // Abrir modal de seleção de gráfico
+        document.getElementById('chart-btn').addEventListener('click', () => {
+            const selected = hot.getSelectedRangeLast();
+            if (!selected || (selected.from.row === selected.to.row && selected.from.col === selected.to.col)) {
+                alert('Por favor, selecione um intervalo de dados para gerar o gráfico.');
+                return;
+            }
+            chartModal.classList.remove('hidden');
+            setTimeout(() => chartModal.classList.remove('opacity-0'), 10);
+        });
+
+        // Fechar modal
+        function closeChartModal() {
+            chartModal.classList.add('opacity-0');
+            setTimeout(() => chartModal.classList.add('hidden'), 300);
+        }
+        document.getElementById('cancel-chart-btn').addEventListener('click', closeChartModal);
+        chartModal.addEventListener('click', (e) => {
+             if (e.target === chartModal) closeChartModal();
+        });
+
+        // Lidar com a seleção do tipo de gráfico
+        document.querySelectorAll('.chart-type-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const chartType = button.dataset.chartType;
+                generateChart(chartType);
+                closeChartModal();
+            });
+        });
+
+        function generateChart(type) {
+            const selectedRange = hot.getSelectedRangeLast();
+            if (!selectedRange) return;
+
+            // Pega os dados da seleção. getSourceDataAtRange é ótimo pois retorna valores brutos (não formatados)
+            const data = hot.getSourceDataAtRange(selectedRange);
+
+            if (data.length < 2 || data[0].length < 2) {
+                alert('A seleção de dados é muito pequena. Selecione pelo menos 2 linhas e 2 colunas (com cabeçalhos).');
+                return;
+            }
+
+            // Processa os dados para o formato do Chart.js
+            // Assume-se que a primeira linha são os rótulos (eixo X) e a primeira coluna são as legendas das séries
+            const labels = data[0].slice(1);
+            const datasets = [];
+
+            for (let i = 1; i < data.length; i++) {
+                datasets.push({
+                    label: data[i][0], // Nome da série (ex: 'Notebooks')
+                    data: data[i].slice(1).map(Number), // Dados numéricos
+                    // Cores aleatórias para visualização
+                    backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`,
+                    borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                    borderWidth: 1
+                });
+            }
+
+            // Destrói o gráfico anterior se existir, para criar um novo
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // Mostra o container do gráfico
+            chartContainer.classList.remove('hidden');
+
+            // Cria a nova instância do Chart.js
+            myChart = new Chart(chartCanvas, {
+                type: type, // 'bar', 'line', 'pie'
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Gráfico a partir da Planilha'
+                        }
+                    },
+                    scales: (type === 'pie' || type === 'doughnut') ? {} : {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>
