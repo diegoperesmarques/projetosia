@@ -44,10 +44,7 @@ let totalTime = 0;
 
 
 const lessonFiles = [
-    "01_Introducao_a_Musica.md",
-    "02_Notas_e_Pautas.md",
-    "03_Claves_Musicais.md",
-    "04_Figuras_de_Tempo.md"
+    "01_Introducao_a_Musica.md"
 ];
 
 
