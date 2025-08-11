@@ -1,11 +1,27 @@
+
 const mainMenuScreen = document.getElementById('main-menu-screen');
+const menuScreen = document.getElementById('menu-screen');
+const exerciseScreen = document.getElementById('exercise-screen');
+
+
+const lessonsListScreen = document.getElementById('lessons-list-screen');
+const lessonViewScreen = document.getElementById('lesson-view-screen');
+
+
+const lessonsBtn = document.getElementById('lessons-btn');
 const exercisesBtn = document.getElementById('exercises-btn');
 const backToMainMenuBtn = document.getElementById('back-to-main-menu-btn');
 
-const menuScreen = document.getElementById('menu-screen');
+
+const lessonsContainer = document.getElementById('lessons-container');
+const lessonSearchInput = document.getElementById('lesson-search-input');
+const lessonTitle = document.getElementById('lesson-title');
+const lessonContent = document.getElementById('lesson-content');
+const backToLessonsListBtn = document.getElementById('back-to-lessons-list-btn');
+const backToMainMenuFromLessonsBtn = document.getElementById('back-to-main-menu-from-lessons-btn');
+const backToMainMenuFromViewBtn = document.getElementById('back-to-main-menu-from-view-btn');
 
 
-const exerciseScreen = document.getElementById('exercise-screen');
 const startBtn = document.getElementById('start-btn');
 const backToMenuBtn = document.getElementById('back-to-menu-btn');
 const clefSelect = document.getElementById('clef');
@@ -27,6 +43,14 @@ let startTime;
 let totalTime = 0;
 
 
+const lessonFiles = [
+    "01_Introducao_a_Musica.md",
+    "02_Notas_e_Pautas.md",
+    "03_Claves_Musicais.md",
+    "04_Figuras_de_Tempo.md"
+];
+
+
 const NOTE_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const ACCIDENTAL_NAMES = { '#': 'Sustenido', 'b': 'Bemol' };
 const INTERVAL_NAMES = {
@@ -35,32 +59,108 @@ const INTERVAL_NAMES = {
 	8: 'Sexta Menor', 9: 'Sexta Maior', 10: 'Sétima Menor', 11: 'Sétima Maior', 12: 'Oitava Justa', 
 	13: 'Intervalo desconhecido'
 };
-
-
 const noteToValue = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
-
-
 const CLEF_INFO = {
-	g: {
-		2: { baseNoteName: 'B', baseNoteOctave: 3 }
-	},
-	f: {
-		4: { baseNoteName: 'D', baseNoteOctave: 2 },
-		3: { baseNoteName: 'F', baseNoteOctave: 2 }
-	},
-	c: {
-		1: { baseNoteName: 'G', baseNoteOctave: 3 },
-		2: { baseNoteName: 'E', baseNoteOctave: 3 },
-		3: { baseNoteName: 'C', baseNoteOctave: 3 },
-		4: { baseNoteName: 'A', baseNoteOctave: 2 }
-	}
+	g: { 2: { baseNoteName: 'B', baseNoteOctave: 3 } },
+	f: { 4: { baseNoteName: 'D', baseNoteOctave: 2 }, 3: { baseNoteName: 'F', baseNoteOctave: 2 } },
+	c: { 1: { baseNoteName: 'G', baseNoteOctave: 3 }, 2: { baseNoteName: 'E', baseNoteOctave: 3 }, 3: { baseNoteName: 'C', baseNoteOctave: 3 }, 4: { baseNoteName: 'A', baseNoteOctave: 2 } }
 };
-
 const CLEF_LINES = {
 	g: { label: 'Linha da Clave de Sol', lines: { 2: 'Linha 2 (Padrão)' } },
 	f: { label: 'Linha da Clave de Fá', lines: { 4: 'Linha 4 (Padrão)', 3: 'Linha 3' } },
 	c: { label: 'Linha da Clave de Dó', lines: { 3: 'Linha 3 (Contralto)', 4: 'Linha 4 (Tenor)', 1: 'Linha 1 (Soprano)', 2: 'Linha 2 (Mezzo-soprano)' } }
 };
+
+
+
+function hideAllScreens() {
+    mainMenuScreen.classList.add('hidden');
+    menuScreen.classList.add('hidden');
+    exerciseScreen.classList.add('hidden');
+    lessonsListScreen.classList.add('hidden');
+    lessonViewScreen.classList.add('hidden');
+}
+
+function showLessonsList() {
+    hideAllScreens();
+    lessonsListScreen.classList.remove('hidden');
+    populateLessonsList();
+}
+
+function showExerciseMenu() {
+    hideAllScreens();
+    menuScreen.classList.remove('hidden');
+}
+
+function goToMainMenu() {
+    hideAllScreens();
+    mainMenuScreen.classList.remove('hidden');
+    clearInterval(timerInterval); 
+}
+
+function goBackToMenu() {
+	hideAllScreens();
+	menuScreen.classList.remove('hidden'); 
+	clearInterval(timerInterval);
+}
+
+
+function formatLessonName(filename) {
+    return filename.replace('.md', '').replace(/_/g, ' ').replace(/^\d+\s*/, '');
+}
+
+function populateLessonsList() {
+    lessonsContainer.innerHTML = '';
+    if (lessonFiles.length === 0) {
+        lessonsContainer.innerHTML = `<p class="text-center text-gray-500">Nenhuma aula encontrada.</p>`;
+        return;
+    }
+
+    lessonFiles.forEach(file => {
+        const lessonName = formatLessonName(file);
+        const lessonElement = document.createElement('button');
+        lessonElement.className = 'w-full text-left p-4 bg-gray-50 border rounded-lg hover:bg-blue-100 hover:border-blue-400 transition-colors lesson-item';
+        lessonElement.textContent = lessonName;
+        lessonElement.dataset.filename = file;
+        
+        lessonElement.addEventListener('click', () => showLessonContent(file));
+        
+        lessonsContainer.appendChild(lessonElement);
+    });
+}
+
+function filterLessons() {
+    const query = lessonSearchInput.value.toLowerCase();
+    const allLessons = document.querySelectorAll('.lesson-item');
+    allLessons.forEach(lesson => {
+        const lessonName = lesson.textContent.toLowerCase();
+        if (lessonName.includes(query)) {
+            lesson.classList.remove('hidden');
+        } else {
+            lesson.classList.add('hidden');
+        }
+    });
+}
+
+async function showLessonContent(filename) {
+    hideAllScreens();
+    lessonViewScreen.classList.remove('hidden');
+    
+    lessonTitle.textContent = formatLessonName(filename);
+    lessonContent.innerHTML = '<p>Carregando aula...</p>';
+
+    try {
+        const response = await fetch(`./aulas/${filename}`);
+        if (!response.ok) {
+            throw new Error('Não foi possível carregar o arquivo da aula.');
+        }
+        const markdown = await response.text();
+        lessonContent.innerHTML = marked.parse(markdown);
+    } catch (error) {
+        console.error('Erro ao buscar a aula:', error);
+        lessonContent.innerHTML = `<p class="text-red-600 font-semibold">Erro ao carregar a aula. Verifique se o arquivo "${filename}" existe na pasta "aulas".</p>`;
+    }
+}
 
 
 function updateClefLines() {
@@ -79,7 +179,6 @@ function updateClefLines() {
 	clefLineContainer.innerHTML = html;
 }
 
-
 function startExercise() {
 	exerciseSettings = {
 		type: document.querySelector('input[name="exerciseType"]:checked').value,
@@ -88,7 +187,7 @@ function startExercise() {
 		allowLedger: document.getElementById('allow-ledger').checked,
 		allowAccidentals: document.getElementById('allow-accidentals').checked
 	};
-	menuScreen.classList.add('hidden');
+	hideAllScreens();
 	exerciseScreen.classList.remove('hidden');
 	totalTime = 0;
 	totalTimeEl.textContent = '0.0s';
@@ -311,7 +410,6 @@ function drawNote(note, x) {
 	}
 }
 
-
 function getNoteFromPosition(position, clefSettings) {
 	const baseNoteInfo = CLEF_INFO[clefSettings.clef][clefSettings.clefLine];
 	const baseNoteName = baseNoteInfo.baseNoteName;
@@ -339,7 +437,6 @@ function getMidiValue({ name, octave, accidental }) {
 	return value;
 }
 
-
 function startTimer() {
 	startTime = Date.now();
 	timerInterval = setInterval(() => {
@@ -357,30 +454,15 @@ function stopTimer() {
 }
 
 
-function showExerciseMenu() {
-    mainMenuScreen.classList.add('hidden');
-    menuScreen.classList.remove('hidden');
-}
-
-
-function goToMainMenu() {
-    menuScreen.classList.add('hidden');
-    mainMenuScreen.classList.remove('hidden');
-}
-
-
-
-function goBackToMenu() {
-	exerciseScreen.classList.add('hidden');
-	menuScreen.classList.remove('hidden'); 
-	clearInterval(timerInterval);
-}
-
-
-
+lessonsBtn.addEventListener('click', showLessonsList);
 exercisesBtn.addEventListener('click', showExerciseMenu);
 backToMainMenuBtn.addEventListener('click', goToMainMenu);
 
+
+lessonSearchInput.addEventListener('input', filterLessons);
+backToLessonsListBtn.addEventListener('click', showLessonsList);
+backToMainMenuFromLessonsBtn.addEventListener('click', goToMainMenu);
+backToMainMenuFromViewBtn.addEventListener('click', goToMainMenu);
 
 
 clefSelect.addEventListener('change', updateClefLines);
@@ -388,5 +470,6 @@ startBtn.addEventListener('click', startExercise);
 backToMenuBtn.addEventListener('click', goBackToMenu);
 checkBtn.addEventListener('click', checkAnswer);
 nextBtn.addEventListener('click', generateNewExercise);
+
 
 updateClefLines();

@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Treinador de Partitura</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <link href="treinamento_musical.css?v=0.0.0.2" rel="stylesheet">
+    <link href="treinamento_musical.css?v=0.0.0.3" rel="stylesheet">
 
 </head>
 <body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
@@ -17,15 +18,15 @@
         <div id="main-menu-screen">
             <h1 class="text-4xl font-bold text-center mb-8">Treinamento Musical</h1>
             <div class="space-y-4">
-                <button id="lessons-btn" class="w-full bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors cursor-not-allowed" disabled>
-                    Aulas (Em Breve)
+                <button id="lessons-btn" class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-lg text-lg hover:bg-blue-700 transition-colors">
+                    Aulas
                 </button>
                 <button id="exercises-btn" class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-lg text-lg hover:bg-blue-700 transition-colors">
                     Exercícios
                 </button>
             </div>
         </div>
-
+        
         <div id="menu-screen" class="hidden">
             <h1 class="text-3xl font-bold text-center mb-6">Configurar Exercício</h1>
             
@@ -107,8 +108,35 @@
             </div>
             <button id="back-to-menu-btn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors mt-4">Voltar ao Menu</button>
         </div>
+
+        <div id="lessons-list-screen" class="hidden">
+            <h1 class="text-3xl font-bold text-center mb-6">Aulas</h1>
+            <div class="mb-6">
+                <input type="search" id="lesson-search-input" placeholder="Pesquisar aulas..." class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+            <div id="lessons-container" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                </div>
+            <button id="back-to-main-menu-from-lessons-btn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors mt-6">
+                Voltar para o Início
+            </button>
+        </div>
+
+        <div id="lesson-view-screen" class="hidden">
+            <h1 id="lesson-title" class="text-3xl font-bold mb-4 border-b pb-3"></h1>
+            <div id="lesson-content" class="prose max-w-none w-full lesson-prose">
+                </div>
+            <div class="mt-8 space-y-3">
+                 <button id="back-to-lessons-list-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                    Voltar para a Lista de Aulas
+                </button>
+                <button id="back-to-main-menu-from-view-btn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+                    Voltar para o Início
+                </button>
+            </div>
+        </div>
+
     </div>
 
-    <script src="treinamento_musical.js?v=0.0.0.2"></script>
+    <script src="treinamento_musical.js?v=0.0.0.3"></script>
 </body>
 </html>
