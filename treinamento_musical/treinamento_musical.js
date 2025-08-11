@@ -21,7 +21,7 @@ let startTime;
 let totalTime = 0;
 
 
-const NOTE_NAMES = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'];
+const NOTE_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const ACCIDENTAL_NAMES = { '#': 'Sustenido', 'b': 'Bemol' };
 const INTERVAL_NAMES = {
 	0: 'Uníssono Justo', 1: 'Segunda Menor', 2: 'Segunda Maior', 3: 'Terça Menor',
@@ -31,22 +31,22 @@ const INTERVAL_NAMES = {
 };
 
 
-const noteToValue = { 'Dó': 0, 'Ré': 2, 'Mi': 4, 'Fá': 5, 'Sol': 7, 'Lá': 9, 'Si': 11 };
+const noteToValue = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
 
 
 const CLEF_INFO = {
 	g: {
-		2: { baseNoteName: 'Si', baseNoteOctave: 3 }
+		2: { baseNoteName: 'B', baseNoteOctave: 3 }
 	},
 	f: {
-		4: { baseNoteName: 'Ré', baseNoteOctave: 2 },
-		3: { baseNoteName: 'Fá', baseNoteOctave: 2 }
+		4: { baseNoteName: 'D', baseNoteOctave: 2 },
+		3: { baseNoteName: 'F', baseNoteOctave: 2 }
 	},
 	c: {
-		1: { baseNoteName: 'Sol', baseNoteOctave: 3 },
-		2: { baseNoteName: 'Mi', baseNoteOctave: 3 },
-		3: { baseNoteName: 'Dó', baseNoteOctave: 3 },
-		4: { baseNoteName: 'Lá', baseNoteOctave: 2 }
+		1: { baseNoteName: 'G', baseNoteOctave: 3 },
+		2: { baseNoteName: 'E', baseNoteOctave: 3 },
+		3: { baseNoteName: 'C', baseNoteOctave: 3 },
+		4: { baseNoteName: 'A', baseNoteOctave: 2 }
 	}
 };
 
@@ -161,7 +161,10 @@ function checkAnswer() {
 
 	if (exerciseSettings.type === 'note') {
 		const userNote = document.getElementById('note-name-select').value;
-		const userOctave = document.getElementById('note-octave-input').value;
+		// --- Início da Alteração ---
+        // Busca o valor do botão de rádio de altura que está selecionado
+		const userOctave = document.querySelector('input[name="note-octave"]:checked').value;
+        // --- Fim da Alteração ---
 		const userAccidental = document.getElementById('note-accidental-select').value;
 		
 		const note = currentExercise.note1;
@@ -189,6 +192,8 @@ function checkAnswer() {
 }
 
 
+
+
 function setupNoteNameAnswerUI() {
 	let noteOptions = NOTE_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
 	let accidentalOptions = `
@@ -196,24 +201,47 @@ function setupNoteNameAnswerUI() {
 		<option value="#">Sustenido (#)</option>
 		<option value="b">Bemol (b)</option>
 	`;
+
+    // --- Início da Alteração ---
+	// Gera os botões clicáveis para a seleção da altura
+	let octaveButtons = '';
+	const startOctave = 2;
+	const endOctave = 6;
+	for (let i = startOctave; i <= endOctave; i++) {
+        // O botão para a oitava 4 já virá selecionado por padrão
+		const isChecked = (i === 4) ? 'checked' : '';
+		octaveButtons += `
+			<div class="flex-1">
+				<input type="radio" name="note-octave" value="${i}" id="octave-${i}" class="octave-option" ${isChecked}>
+				<label for="octave-${i}" class="octave-label block">${i}</label>
+			</div>
+		`;
+	}
+    // --- Fim da Alteração ---
+
 	answerSection.innerHTML = `
-		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 			<div>
-				<label for="note-name-select" class="block mb-1 font-medium">Nota:</label>
+				<label class="block mb-2 font-medium">Nota:</label>
 				<select id="note-name-select" class="w-full p-2 border rounded-lg">${noteOptions}</select>
 			</div>
 			<div>
-				<label for="note-octave-input" class="block mb-1 font-medium">Altura:</label>
-				<input type="number" id="note-octave-input" value="4" min="0" max="8" class="w-full p-2 border rounded-lg">
-			</div>
-			<div>
-				<label for="note-accidental-select" class="block mb-1 font-medium">Acidente:</label>
+				<label class="block mb-2 font-medium">Acidente:</label>
 				<select id="note-accidental-select" class="w-full p-2 border rounded-lg" ${!exerciseSettings.allowAccidentals ? 'disabled' : ''}>
 					${accidentalOptions}
 				</select>
 			</div>
-		</div>`;
+		</div>
+		<div class="mt-4">
+			<label class="block mb-2 font-medium">Altura:</label>
+			<div class="flex flex-wrap gap-2">
+				${octaveButtons}
+			</div>
+		</div>
+		`;
 }
+
+
 
 function setupIntervalAnswerUI() {
 	let intervalOptions = Object.values(INTERVAL_NAMES).map(name => `<option value="${name}">${name}</option>`).join('');

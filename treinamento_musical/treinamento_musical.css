@@ -23,3 +23,26 @@ body {
 .feedback-incorrect {
 	color: #dc2626; 
 }
+
+
+/* Estilos para os botões de seleção de altura */
+.octave-option {
+	display: none; /* Esconde o botão de rádio real */
+}
+
+.octave-label {
+	padding: 8px 16px;
+	border: 1px solid #d1d5db; /* Cor de borda cinza claro */
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
+	text-align: center;
+}
+
+/* Estilo para quando o botão de altura estiver selecionado */
+.octave-option:checked + .octave-label {
+	background-color: #3b82f6; /* Fundo azul */
+	color: white;
+	border-color: #2563eb; /* Borda azul mais escura */
+	font-weight: 500;
+}
