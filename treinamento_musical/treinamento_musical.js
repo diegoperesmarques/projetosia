@@ -1,4 +1,10 @@
+const mainMenuScreen = document.getElementById('main-menu-screen');
+const exercisesBtn = document.getElementById('exercises-btn');
+const backToMainMenuBtn = document.getElementById('back-to-main-menu-btn');
+
 const menuScreen = document.getElementById('menu-screen');
+
+
 const exerciseScreen = document.getElementById('exercise-screen');
 const startBtn = document.getElementById('start-btn');
 const backToMenuBtn = document.getElementById('back-to-menu-btn');
@@ -55,7 +61,6 @@ const CLEF_LINES = {
 	f: { label: 'Linha da Clave de Fá', lines: { 4: 'Linha 4 (Padrão)', 3: 'Linha 3' } },
 	c: { label: 'Linha da Clave de Dó', lines: { 3: 'Linha 3 (Contralto)', 4: 'Linha 4 (Tenor)', 1: 'Linha 1 (Soprano)', 2: 'Linha 2 (Mezzo-soprano)' } }
 };
-
 
 
 function updateClefLines() {
@@ -161,10 +166,7 @@ function checkAnswer() {
 
 	if (exerciseSettings.type === 'note') {
 		const userNote = document.getElementById('note-name-select').value;
-		// --- Início da Alteração ---
-        // Busca o valor do botão de rádio de altura que está selecionado
 		const userOctave = document.querySelector('input[name="note-octave"]:checked').value;
-        // --- Fim da Alteração ---
 		const userAccidental = document.getElementById('note-accidental-select').value;
 		
 		const note = currentExercise.note1;
@@ -191,9 +193,6 @@ function checkAnswer() {
 	nextBtn.classList.remove('hidden');
 }
 
-
-
-
 function setupNoteNameAnswerUI() {
 	let noteOptions = NOTE_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
 	let accidentalOptions = `
@@ -202,13 +201,10 @@ function setupNoteNameAnswerUI() {
 		<option value="b">Bemol (b)</option>
 	`;
 
-    // --- Início da Alteração ---
-	// Gera os botões clicáveis para a seleção da altura
 	let octaveButtons = '';
 	const startOctave = 2;
 	const endOctave = 6;
 	for (let i = startOctave; i <= endOctave; i++) {
-        // O botão para a oitava 4 já virá selecionado por padrão
 		const isChecked = (i === 4) ? 'checked' : '';
 		octaveButtons += `
 			<div class="flex-1">
@@ -217,7 +213,6 @@ function setupNoteNameAnswerUI() {
 			</div>
 		`;
 	}
-    // --- Fim da Alteração ---
 
 	answerSection.innerHTML = `
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -240,8 +235,6 @@ function setupNoteNameAnswerUI() {
 		</div>
 		`;
 }
-
-
 
 function setupIntervalAnswerUI() {
 	let intervalOptions = Object.values(INTERVAL_NAMES).map(name => `<option value="${name}">${name}</option>`).join('');
@@ -364,11 +357,31 @@ function stopTimer() {
 }
 
 
+function showExerciseMenu() {
+    mainMenuScreen.classList.add('hidden');
+    menuScreen.classList.remove('hidden');
+}
+
+
+function goToMainMenu() {
+    menuScreen.classList.add('hidden');
+    mainMenuScreen.classList.remove('hidden');
+}
+
+
+
 function goBackToMenu() {
 	exerciseScreen.classList.add('hidden');
-	menuScreen.classList.remove('hidden');
+	menuScreen.classList.remove('hidden'); 
 	clearInterval(timerInterval);
 }
+
+
+
+exercisesBtn.addEventListener('click', showExerciseMenu);
+backToMainMenuBtn.addEventListener('click', goToMainMenu);
+
+
 
 clefSelect.addEventListener('change', updateClefLines);
 startBtn.addEventListener('click', startExercise);

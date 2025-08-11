@@ -7,15 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <link href="treinamento_musical.css?v=0.0.0.1" rel="stylesheet">
+    <link href="treinamento_musical.css?v=0.0.0.2" rel="stylesheet">
 
 </head>
 <body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 md:p-8">
 
-        <div id="menu-screen">
-            <h1 class="text-3xl font-bold text-center mb-6">Treinador de Partitura</h1>
+        <div id="main-menu-screen">
+            <h1 class="text-4xl font-bold text-center mb-8">Treinamento Musical</h1>
+            <div class="space-y-4">
+                <button id="lessons-btn" class="w-full bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors cursor-not-allowed" disabled>
+                    Aulas (Em Breve)
+                </button>
+                <button id="exercises-btn" class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-lg text-lg hover:bg-blue-700 transition-colors">
+                    Exercícios
+                </button>
+            </div>
+        </div>
+
+        <div id="menu-screen" class="hidden">
+            <h1 class="text-3xl font-bold text-center mb-6">Configurar Exercício</h1>
             
             <div class="space-y-6">
                 <div>
@@ -66,6 +78,9 @@
             <button id="start-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg mt-8 hover:bg-blue-700 transition-colors">
                 Iniciar Exercício
             </button>
+            <button id="back-to-main-menu-btn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors mt-4">
+                Voltar para o Início
+            </button>
         </div>
 
         <div id="exercise-screen" class="hidden">
@@ -94,6 +109,6 @@
         </div>
     </div>
 
-    <script src="treinamento_musical.js?v=0.0.0.1"></script>
+    <script src="treinamento_musical.js?v=0.0.0.2"></script>
 </body>
 </html>
