@@ -1,0 +1,25 @@
+body {
+	font-family: 'Inter', sans-serif;
+}
+
+.clef-line-option {
+	display: none;
+}
+.clef-line-label {
+	padding: 8px 12px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
+}
+.clef-line-option:checked + .clef-line-label {
+	background-color: #3b82f6; 
+	color: white;
+	border-color: #2563eb; 
+}
+.feedback-correct {
+	color: #16a34a; 
+}
+.feedback-incorrect {
+	color: #dc2626; 
+}
