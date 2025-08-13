@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clone do Chat AI Studio</title>
+    <title>Chat Turbo de IA</title>
     <!-- Incluindo Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Incluindo jQuery -->
@@ -58,8 +58,8 @@
 
     <!-- Cabeçalho -->
     <header class="bg-white border-b border-slate-200 p-4 shadow-sm">
-        <h1 class="text-xl font-semibold text-slate-800">Clone do Chat AI Studio</h1>
-        <p class="text-sm text-slate-500">Um clone da interface de chat do Google AI Studio usando Gemini.</p>
+        <h1 class="text-xl font-semibold text-slate-800">Chat turbo de IA</h1>
+        <p class="text-sm text-slate-500">Digite um prompt e a IA irá aprimorá-lo antes de gerar a resposta final.</p>
     </header>
 
     <!-- Janela do Chat -->
@@ -68,7 +68,7 @@
         <div class="flex items-start gap-3">
             <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
             <div class="bg-white p-4 rounded-lg shadow-sm max-w-2xl prose">
-                <p>Olá! Como posso te ajudar hoje?</p>
+                <p>Olá! Digite uma ideia de prompt e eu irei aprimorá-lo e trazer a resposta.</p>
             </div>
         </div>
     </main>
@@ -77,7 +77,7 @@
     <footer class="bg-white border-t border-slate-200 p-4">
         <div class="max-w-3xl mx-auto">
             <div class="relative">
-                <textarea id="user-input" class="w-full border-slate-300 rounded-lg p-3 pr-28 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                <textarea id="user-input" class="w-full border-slate-300 rounded-lg p-3 pr-28 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Digite seu prompt aqui..." rows="1"></textarea>
                 <button id="send-button" class="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white font-semibold rounded-lg px-5 py-2 hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed">
                     Enviar
                 </button>
@@ -90,7 +90,6 @@
             const userInput = $('#user-input');
             const sendButton = $('#send-button');
             const chatWindow = $('#chat-window');
-            let chatHistory = []; // Para manter o histórico da conversa
 
             // Ajusta a altura do textarea dinamicamente
             userInput.on('input', function () {
@@ -112,9 +111,11 @@
             function sendMessage() {
                 const messageText = userInput.val().trim();
                 if (messageText === '') return;
+                
+                // Limpa o chat para uma nova conversa, mantendo a mensagem inicial
+                chatWindow.find('.flex.items-start.gap-3:not(:first)').remove();
+                chatWindow.find('.flex.items-start.gap-3.justify-end').remove();
 
-                // Adiciona a mensagem do usuário ao histórico
-                chatHistory.push({ role: "user", parts: [{ text: messageText }] });
 
                 // Exibe a mensagem do usuário na tela
                 const userMessageHtml = `
@@ -136,8 +137,8 @@
                 showTypingIndicator();
                 scrollToBottom();
 
-                // Chama a API do Gemini
-                callGeminiApi();
+                // Inicia o processo de duas chamadas para a API
+                processMessage(messageText);
             }
 
             function showTypingIndicator() {
@@ -157,53 +158,91 @@
                 scrollToBottom();
             }
 
-            async function callGeminiApi() {
-                const apiKey = "AIzaSyCbo_kW7lwB8qgP_ND7qXN2MTjccVmhSyI"; // A chave da API será fornecida pelo ambiente
+            async function processMessage(userMessage) {
+                // A chave da API será fornecida pelo ambiente, deixe em branco.
+                const apiKey = ""; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-                const payload = {
-                    contents: chatHistory,
-                    // Configurações opcionais de geração
-                    generationConfig: {
-                        temperature: 0.7,
-                        topK: 1,
-                        topP: 1,
-                        maxOutputTokens: 2048,
-                    },
-                };
+                // Instruções para o engenheiro de prompt
+                const promptImproverInstructions = `Aja como um engenheiro sênior de prompt especializado em modelos de linguagem de última geração (LLMs), com mais de 10 anos de experiência otimizando prompts para maximizar clareza, completude, precisão e concisão nas respostas. Você é referência na área de engenharia de prompt e já treinou equipes em empresas de tecnologia, educação e IA aplicada.
+
+Seu objetivo é analisar criticamente o prompt que será fornecido a seguir. Você deve reescrevê-lo de forma mais precisa, detalhada e eficiente, aplicando as melhores práticas da engenharia de prompt. Certifique-se de que a versão aprimorada:
+
+1. Atribua uma identidade clara ao modelo (por exemplo: 'aja como um especialista em...').
+2. Defina com clareza o objetivo do usuário.
+3. Estruture a tarefa em etapas claras e sequenciais.
+4. Utilize um tom profissional, específico e direto, evitando ambiguidades.
+5. Aumente a densidade informacional e a clareza do prompt original.
+6. Caso necessário, complemente com instruções adicionais que melhorem a profundidade e qualidade da resposta.
+7. Finalize o prompt com a instrução: 'Respire fundo e resolva esse problema passo a passo.'
+8. Prompt final deve estar no formato markdown dentro de uma estrutura de código de várias linhas, ou seja, estar entre 3 acentos cases.
+9. Não mostre mais nada na resposta além do prompt melhorado.
+
+Após aprimorar o prompt, avalie a versão final com uma nota de 0 a 10, justificando o motivo da nota com base nos critérios acima.
+
+Take a deep breath and work on this problem step-by-step.
+
+Abaixo está o prompt que precisa se melhorado:`;
+
+                const firstPrompt = `${promptImproverInstructions}\n\n${userMessage}`;
 
                 try {
-                    const response = await fetch(apiUrl, {
+                    // --- Primeira Chamada da API: Melhorar o prompt ---
+                    const firstPayload = {
+                        contents: [{ role: "user", parts: [{ text: firstPrompt }] }],
+                        generationConfig: { temperature: 0.5, maxOutputTokens: 2048 },
+                    };
+
+                    const firstResponse = await fetch(apiUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(firstPayload),
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error.message || 'Ocorreu um erro na API.');
+                    if (!firstResponse.ok) {
+                        const errorData = await firstResponse.json();
+                        throw new Error(`Erro ao melhorar o prompt: ${errorData.error.message}`);
                     }
 
-                    const result = await response.json();
-                    
-                    let aiResponseText = "Não foi possível obter uma resposta.";
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        aiResponseText = result.candidates[0].content.parts[0].text;
+                    const firstResult = await firstResponse.json();
+                    let improvedPrompt = "";
+                    if (firstResult.candidates && firstResult.candidates[0].content && firstResult.candidates[0].content.parts[0]) {
+                        improvedPrompt = firstResult.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("A resposta da API para melhorar o prompt estava em um formato inesperado.");
                     }
                     
-                    // Adiciona a resposta do AI ao histórico
-                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
-                    displayAiResponse(aiResponseText);
+                    // --- Segunda Chamada da API: Obter a resposta final ---
+                    const secondPayload = {
+                        contents: [{ role: "user", parts: [{ text: improvedPrompt }] }],
+                        generationConfig: { temperature: 0.7, topK: 1, topP: 1, maxOutputTokens: 2048 },
+                    };
+
+                    const secondResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(secondPayload),
+                    });
+
+                    if (!secondResponse.ok) {
+                        const errorData = await secondResponse.json();
+                        throw new Error(`Erro ao gerar a resposta final: ${errorData.error.message}`);
+                    }
+
+                    const secondResult = await secondResponse.json();
+                    let finalAnswer = "Não foi possível obter uma resposta final.";
+                    if (secondResult.candidates && secondResult.candidates[0].content && secondResult.candidates[0].content.parts[0]) {
+                        finalAnswer = secondResult.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("A resposta final da API estava em um formato inesperado.");
+                    }
+
+                    displayAiResponse(finalAnswer);
 
                 } catch (error) {
-                    console.error("Erro ao chamar a API do Gemini:", error);
+                    console.error("Erro no processo de mensagem:", error);
                     displayAiResponse(`**Erro:** ${error.message}`);
                 } finally {
-                    // Remove o indicador de "digitando" e reativa o botão
                     $('#typing-indicator').remove();
                     sendButton.prop('disabled', false);
                     userInput.focus();
@@ -211,10 +250,8 @@
             }
 
             function displayAiResponse(text) {
-                // Remove o indicador de "digitando" caso ainda exista
                 $('#typing-indicator').remove();
                 
-                // Usa a biblioteca Marked para converter Markdown em HTML
                 const formattedText = marked.parse(text);
 
                 const aiMessageHtml = `
