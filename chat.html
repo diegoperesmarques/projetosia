@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Turbo de IA</title>
+    <title>Melhorador de Prompt com IA</title>
     <!-- Incluindo Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Incluindo jQuery -->
@@ -58,7 +58,7 @@
 
     <!-- Cabeçalho -->
     <header class="bg-white border-b border-slate-200 p-4 shadow-sm">
-        <h1 class="text-xl font-semibold text-slate-800">Chat turbo de IA</h1>
+        <h1 class="text-xl font-semibold text-slate-800">Melhorador de Prompt com IA</h1>
         <p class="text-sm text-slate-500">Digite um prompt e a IA irá aprimorá-lo antes de gerar a resposta final.</p>
     </header>
 
@@ -206,10 +206,12 @@ Abaixo está o prompt que precisa se melhorado:`;
 
                     const firstResult = await firstResponse.json();
                     let improvedPrompt = "";
-                    if (firstResult.candidates && firstResult.candidates[0].content && firstResult.candidates[0].content.parts[0]) {
+                    if (firstResult.candidates && firstResult.candidates.length > 0 &&
+                        firstResult.candidates[0].content && firstResult.candidates[0].content.parts &&
+                        firstResult.candidates[0].content.parts.length > 0) {
                         improvedPrompt = firstResult.candidates[0].content.parts[0].text;
                     } else {
-                        throw new Error("A resposta da API para melhorar o prompt estava em um formato inesperado.");
+                        throw new Error("A resposta da API para melhorar o prompt estava em um formato inesperado ou vazia.");
                     }
                     
                     // --- Segunda Chamada da API: Obter a resposta final ---
@@ -231,10 +233,12 @@ Abaixo está o prompt que precisa se melhorado:`;
 
                     const secondResult = await secondResponse.json();
                     let finalAnswer = "Não foi possível obter uma resposta final.";
-                    if (secondResult.candidates && secondResult.candidates[0].content && secondResult.candidates[0].content.parts[0]) {
+                    if (secondResult.candidates && secondResult.candidates.length > 0 &&
+                        secondResult.candidates[0].content && secondResult.candidates[0].content.parts &&
+                        secondResult.candidates[0].content.parts.length > 0) {
                         finalAnswer = secondResult.candidates[0].content.parts[0].text;
                     } else {
-                        throw new Error("A resposta final da API estava em um formato inesperado.");
+                        throw new Error("A resposta final da API estava em um formato inesperado ou vazia.");
                     }
 
                     displayAiResponse(finalAnswer);
