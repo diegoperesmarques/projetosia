@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clone do Chat AI Studio</title>
+    <!-- Incluindo Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Incluindo jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Incluindo a biblioteca Marked.js para renderizar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Estilo para a fonte Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para a barra de rolagem */
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-window::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+            border: 3px solid #f1f5f9;
+        }
+        /* Estilo para o conteúdo renderizado pelo Marked.js */
+        .prose p {
+            margin-bottom: 1rem;
+        }
+        .prose h1, .prose h2, .prose h3 {
+            margin-bottom: 0.5rem;
+            margin-top: 1.5rem;
+        }
+        .prose ul, .prose ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .prose li {
+            margin-bottom: 0.25rem;
+        }
+        .prose pre {
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        .prose code {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex flex-col h-screen">
+
+    <!-- Cabeçalho -->
+    <header class="bg-white border-b border-slate-200 p-4 shadow-sm">
+        <h1 class="text-xl font-semibold text-slate-800">Clone do Chat AI Studio</h1>
+        <p class="text-sm text-slate-500">Um clone da interface de chat do Google AI Studio usando Gemini.</p>
+    </header>
+
+    <!-- Janela do Chat -->
+    <main id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
+        <!-- Mensagem inicial do AI -->
+        <div class="flex items-start gap-3">
+            <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+            <div class="bg-white p-4 rounded-lg shadow-sm max-w-2xl prose">
+                <p>Olá! Como posso te ajudar hoje?</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Área de Digitação -->
+    <footer class="bg-white border-t border-slate-200 p-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="relative">
+                <textarea id="user-input" class="w-full border-slate-300 rounded-lg p-3 pr-28 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                <button id="send-button" class="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white font-semibold rounded-lg px-5 py-2 hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        $(document).ready(function() {
+            const userInput = $('#user-input');
+            const sendButton = $('#send-button');
+            const chatWindow = $('#chat-window');
+            let chatHistory = []; // Para manter o histórico da conversa
+
+            // Ajusta a altura do textarea dinamicamente
+            userInput.on('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            // Função para enviar mensagem com Enter, exceto com Shift
+            userInput.on('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Função para enviar mensagem com clique no botão
+            sendButton.on('click', sendMessage);
+
+            function sendMessage() {
+                const messageText = userInput.val().trim();
+                if (messageText === '') return;
+
+                // Adiciona a mensagem do usuário ao histórico
+                chatHistory.push({ role: "user", parts: [{ text: messageText }] });
+
+                // Exibe a mensagem do usuário na tela
+                const userMessageHtml = `
+                    <div class="flex items-start gap-3 justify-end">
+                        <div class="bg-slate-200 p-4 rounded-lg shadow-sm max-w-2xl">
+                            <p>${messageText}</p>
+                        </div>
+                        <div class="bg-slate-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">Você</div>
+                    </div>
+                `;
+                chatWindow.append(userMessageHtml);
+
+                // Limpa o input e reseta a altura
+                userInput.val('');
+                userInput.css('height', 'auto');
+                
+                // Desativa o botão de envio e mostra o indicador de "digitando"
+                sendButton.prop('disabled', true);
+                showTypingIndicator();
+                scrollToBottom();
+
+                // Chama a API do Gemini
+                callGeminiApi();
+            }
+
+            function showTypingIndicator() {
+                const typingIndicatorHtml = `
+                    <div id="typing-indicator" class="flex items-start gap-3">
+                        <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <div class="flex items-center space-x-1">
+                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0s;"></div>
+                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                chatWindow.append(typingIndicatorHtml);
+                scrollToBottom();
+            }
+
+            async function callGeminiApi() {
+                const apiKey = ""; // A chave da API será fornecida pelo ambiente
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: chatHistory,
+                    // Configurações opcionais de geração
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 1,
+                        topP: 1,
+                        maxOutputTokens: 2048,
+                    },
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error.message || 'Ocorreu um erro na API.');
+                    }
+
+                    const result = await response.json();
+                    
+                    let aiResponseText = "Não foi possível obter uma resposta.";
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        aiResponseText = result.candidates[0].content.parts[0].text;
+                    }
+                    
+                    // Adiciona a resposta do AI ao histórico
+                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+                    displayAiResponse(aiResponseText);
+
+                } catch (error) {
+                    console.error("Erro ao chamar a API do Gemini:", error);
+                    displayAiResponse(`**Erro:** ${error.message}`);
+                } finally {
+                    // Remove o indicador de "digitando" e reativa o botão
+                    $('#typing-indicator').remove();
+                    sendButton.prop('disabled', false);
+                    userInput.focus();
+                }
+            }
+
+            function displayAiResponse(text) {
+                // Remove o indicador de "digitando" caso ainda exista
+                $('#typing-indicator').remove();
+                
+                // Usa a biblioteca Marked para converter Markdown em HTML
+                const formattedText = marked.parse(text);
+
+                const aiMessageHtml = `
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm max-w-2xl prose prose-slate">
+                            ${formattedText}
+                        </div>
+                    </div>
+                `;
+                chatWindow.append(aiMessageHtml);
+                scrollToBottom();
+            }
+            
+            function scrollToBottom() {
+                chatWindow.scrollTop(chatWindow[0].scrollHeight);
+            }
+        });
+    </script>
+
+</body>
+</html>
