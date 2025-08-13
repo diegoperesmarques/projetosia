@@ -116,7 +116,6 @@
                 chatWindow.find('.flex.items-start.gap-3:not(:first)').remove();
                 chatWindow.find('.flex.items-start.gap-3.justify-end').remove();
 
-
                 // Exibe a mensagem do usuário na tela
                 const userMessageHtml = `
                     <div class="flex items-start gap-3 justify-end">
@@ -126,7 +125,10 @@
                         <div class="bg-slate-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">Você</div>
                     </div>
                 `;
-                chatWindow.append(userMessageHtml);
+                const userMessageElement = $(userMessageHtml);
+                chatWindow.append(userMessageElement);
+                userMessageElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
+
 
                 // Limpa o input e reseta a altura
                 userInput.val('');
@@ -135,7 +137,6 @@
                 // Desativa o botão de envio e mostra o indicador de "digitando"
                 sendButton.prop('disabled', true);
                 showTypingIndicator();
-                scrollToBottom();
 
                 // Inicia o processo de duas chamadas para a API
                 processMessage(messageText);
@@ -154,16 +155,18 @@
                         </div>
                     </div>
                 `;
-                chatWindow.append(typingIndicatorHtml);
-                scrollToBottom();
+                const typingIndicatorElement = $(typingIndicatorHtml);
+                chatWindow.append(typingIndicatorElement);
+                typingIndicatorElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
             }
 
             async function processMessage(userMessage) {
-                // A chave da API será fornecida pelo ambiente, deixe em branco.
+                // NOTA DE SEGURANÇA: A chave da API não deve ser exposta no código do lado do cliente.
+                // O ideal é que as chamadas de API sejam feitas a partir de um backend seguro.
+                // Deixando em branco conforme a instrução original.
                 const apiKey = "AIzaSyCbo_kW7lwB8qgP_ND7qXN2MTjccVmhSyI"; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-                // Instruções para o engenheiro de prompt
                 const promptImproverInstructions = `Aja como um engenheiro sênior de prompt especializado em modelos de linguagem de última geração (LLMs), com mais de 10 anos de experiência otimizando prompts para maximizar clareza, completude, precisão e concisão nas respostas. Você é referência na área de engenharia de prompt e já treinou equipes em empresas de tecnologia, educação e IA aplicada.
 
 Seu objetivo é analisar criticamente o prompt que será fornecido a seguir. Você deve reescrevê-lo de forma mais precisa, detalhada e eficiente, aplicando as melhores práticas da engenharia de prompt. Certifique-se de que a versão aprimorada:
@@ -266,12 +269,9 @@ Abaixo está o prompt que precisa se melhorado:`;
                         </div>
                     </div>
                 `;
-                chatWindow.append(aiMessageHtml);
-                scrollToBottom();
-            }
-            
-            function scrollToBottom() {
-                chatWindow.scrollTop(chatWindow[0].scrollHeight);
+                const aiMessageElement = $(aiMessageHtml);
+                chatWindow.append(aiMessageElement);
+                aiMessageElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
             }
         });
     </script>
