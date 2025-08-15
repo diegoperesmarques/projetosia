@@ -39,6 +39,9 @@
             background: #64748b;
         }
         /* Estilos para o conteúdo gerado pelo Markdown */
+        .prose {
+            max-width: none; /* Reseta o max-width do prose para ocupar o espaço disponível */
+        }
         .prose pre {
             background-color: #1e293b;
             color: #e2e8f0;
@@ -54,18 +57,17 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+<body class="bg-slate-100">
 
-    <div class="w-full max-w-3xl mx-auto flex flex-col h-[90vh] bg-white shadow-2xl rounded-2xl overflow-hidden">
+    <div class="w-full flex flex-col h-screen bg-white">
         
         <!-- Cabeçalho -->
-        <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md">
+        <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
             <h1 class="text-xl font-bold">Groq LLM Chat</h1>
-            <span class="text-sm font-medium">Modelo: llama3-8b-8192</span>
         </header>
 
         <!-- Container do Chat (onde as mensagens aparecem) -->
-        <main id="chat-container" class="flex-1 p-6 overflow-y-auto bg-slate-50">
+        <main id="chat-container" class="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-50">
             <!-- Mensagem inicial de boas-vindas -->
             <div class="flex justify-center items-center h-full">
                 <div class="text-center text-slate-400">
@@ -73,14 +75,24 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                     <p class="mt-2 text-lg">Comece uma conversa</p>
-                    <p class="text-sm">Insira sua chave de API e envie uma pergunta.</p>
+                    <p class="text-sm">Escolha um modelo, insira sua chave e envie uma pergunta.</p>
                 </div>
             </div>
         </main>
 
         <!-- Formulário de Envio -->
-        <footer class="p-4 bg-white border-t border-slate-200">
-            <form id="chat-form" class="space-y-3">
+        <footer class="p-4 bg-white border-t border-slate-200 flex-shrink-0">
+            <form id="chat-form" class="max-w-4xl mx-auto space-y-3">
+                <!-- Seletor de Modelo -->
+                <div>
+                    <label for="model-selector" class="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
+                    <select id="model-selector" class="w-full p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="llama3-8b-8192" selected>Llama3 8B (8k)</option>
+                        <option value="gemma-7b-it">Gemma 7B IT</option>
+                        <option value="llama3-70b-8192">Llama3 70B (8k)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B (32k)</option>
+                    </select>
+                </div>
                 <!-- Input da API Key -->
                 <div>
                      <input type="password" id="api-key" placeholder="Cole sua Groq API Key aqui (gsk_...)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required>
@@ -108,9 +120,11 @@
                 simpleLineBreaks: true
             });
 
+            // Referências aos elementos do DOM
             const chatForm = $('#chat-form');
             const messageInput = $('#message');
             const apiKeyInput = $('#api-key');
+            const modelSelector = $('#model-selector'); // Novo seletor de modelo
             const chatContainer = $('#chat-container');
             const sendButton = $('#send-button');
             
@@ -121,9 +135,12 @@
 
                 const message = messageInput.val().trim();
                 const apiKey = apiKeyInput.val().trim();
+                const model = modelSelector.val(); // Pega o modelo selecionado
 
                 if (!message || !apiKey) {
-                    // Simples validação para garantir que os campos não estão vazios
+                    // Substituído alert por um modal customizado (ou outra UI) seria o ideal,
+                    // mas mantendo a simplicidade, o alert permanece.
+                    // Em um ambiente real, evite 'alert()'.
                     alert('Por favor, insira sua API Key e uma pergunta.');
                     return;
                 }
@@ -145,7 +162,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'llama3-8b-8192', // Modelo utilizado
+                            model: model, // Usa o modelo selecionado dinamicamente
                             messages: [{
                                 role: 'user',
                                 content: message
@@ -190,6 +207,9 @@
             function appendMessage(role, content, isTyping = false) {
                 let messageDiv;
                 
+                // Centraliza o conteúdo da mensagem para melhor leitura em telas largas
+                const messageContentWrapper = `<div class="max-w-4xl mx-auto">${content}</div>`;
+                
                 // Estilos baseados no 'role'
                 if (role === 'user') {
                     messageDiv = $(`
@@ -200,19 +220,19 @@
                         </div>
                     `);
                 } else if (role === 'assistant') {
-                    const typingClass = isTyping ? '' : 'prose prose-slate max-w-none';
+                    const typingClass = isTyping ? '' : 'prose prose-slate';
                     messageDiv = $(`
                         <div class="flex justify-start mb-4">
-                            <div class="bg-slate-200 text-slate-800 rounded-lg p-3 max-w-lg ${typingClass}">
-                                ${content}
+                            <div class="bg-slate-200 text-slate-800 rounded-lg p-3 w-full ${typingClass}">
+                                ${isTyping ? content : messageContentWrapper}
                             </div>
                         </div>
                     `);
                 } else if (role === 'error') {
                      messageDiv = $(`
                         <div class="flex justify-start mb-4">
-                            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 max-w-lg">
-                                ${content}
+                            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 w-full">
+                                ${messageContentWrapper}
                             </div>
                         </div>
                     `);
