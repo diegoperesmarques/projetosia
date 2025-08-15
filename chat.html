@@ -55,6 +55,13 @@
         .prose h1, .prose h2, .prose h3 {
             font-weight: 600;
         }
+        /* Estilo para o iframe no modal */
+        #modal-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0.25rem;
+        }
     </style>
 </head>
 <body class="bg-slate-100">
@@ -110,6 +117,20 @@
         </footer>
     </div>
 
+    <!-- Modal para Exibição de Código -->
+    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-3 border-b bg-slate-50 rounded-t-lg">
+                <h3 class="text-lg font-semibold text-slate-700">Visualização de Código</h3>
+                <button id="close-modal-btn" class="text-slate-500 hover:text-slate-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="modal-content" class="p-4 flex-1 overflow-auto bg-slate-100">
+                <!-- Iframe ou <pre><code> com o código será injetado aqui -->
+            </div>
+        </div>
+    </div>
+
+
     <script>
         $(document).ready(function() {
             // Instancia o conversor de Markdown
@@ -117,7 +138,8 @@
                 tables: true,
                 strikethrough: true,
                 tasklists: true,
-                simpleLineBreaks: true
+                simpleLineBreaks: true,
+                ghCompatibleHeaderId: true,
             });
 
             // Referências aos elementos do DOM
@@ -127,6 +149,9 @@
             const modelSelector = $('#model-selector');
             const chatContainer = $('#chat-container');
             const sendButton = $('#send-button');
+            const codeModal = $('#code-modal');
+            const modalContent = $('#modal-content');
+            const closeModalBtn = $('#close-modal-btn');
             
             const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -175,7 +200,6 @@ Abaixo está o prompt que precisa ser melhorado:
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    // Lança um erro para ser pego pelo bloco catch
                     throw new Error(`Erro na API: ${errorData.error.message}`);
                 }
 
@@ -192,12 +216,11 @@ Abaixo está o prompt que precisa ser melhorado:
                 const model = modelSelector.val();
 
                 if (!userMessage || !apiKey) {
-                    // Em um app real, usar um modal ou notificação em vez de alert.
-                    alert('Por favor, insira sua API Key e uma pergunta.');
+                    appendMessage('error', 'Por favor, insira sua API Key e uma pergunta.');
                     return;
                 }
 
-                chatContainer.html(''); 
+                chatContainer.find('.flex.justify-center.items-center.h-full').remove();
                 appendMessage('user', userMessage);
                 messageInput.val('');
                 sendButton.prop('disabled', true);
@@ -205,50 +228,31 @@ Abaixo está o prompt que precisa ser melhorado:
                 const typingIndicator = appendMessage('assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
 
                 try {
-                    // ETAPA 1: Criar o prompt para o otimizador
                     const promptToEnhance = `${PROMPT_ENHANCER_INSTRUCTIONS}\n\n${userMessage}`;
                     
-                    // ETAPA 2: Chamar a API para obter o prompt melhorado
                     console.log("Enviando para otimização...");
                     const enhancedPromptResponse = await callGroqAPI(apiKey, model, [{ role: 'user', content: promptToEnhance }]);
                     
-                    // *** INÍCIO DA CORREÇÃO ***
-                    // Extrai o prompt de dentro do bloco de código e a avaliação de forma mais robusta.
                     const enhancedPromptMatch = enhancedPromptResponse.match(/```(?:.*\n)?([\s\S]*?)```/);
                     let finalPrompt;
-                    let evaluation = "Avaliação não encontrada.";
 
                     if (enhancedPromptMatch && enhancedPromptMatch[1]) {
                         finalPrompt = enhancedPromptMatch[1].trim();
-                        
-                        // Tenta extrair a avaliação que vem depois do bloco de código
-                        const fullMatchText = enhancedPromptMatch[0];
-                        const evaluationStartIndex = enhancedPromptResponse.indexOf(fullMatchText) + fullMatchText.length;
-                        const potentialEvaluation = enhancedPromptResponse.substring(evaluationStartIndex).trim();
-                        if (potentialEvaluation) {
-                            evaluation = potentialEvaluation;
-                        }
                         console.log("Prompt otimizado com sucesso.");
                     } else {
-                        // Se a otimização falhar, usa o prompt original do usuário como fallback.
                         console.warn("Otimização do prompt falhou. Usando o prompt original.");
-                        finalPrompt = userMessage; // Fallback para o prompt original
-                        evaluation = "A otimização do prompt não retornou um formato válido.";
+                        finalPrompt = userMessage;
                     }
-                    // *** FIM DA CORREÇÃO ***
-
-                    console.log("Prompt Otimizado Recebido:\n", finalPrompt);
-                    console.log("Avaliação do Prompt:\n", evaluation);
-
-
-                    // ETAPA 3: Chamar a API com o prompt melhorado para obter a resposta final
+                    
                     console.log("Enviando prompt otimizado para resposta final...");
                     const finalAnswer = await callGroqAPI(apiKey, model, [{ role: 'user', content: finalPrompt }]);
 
-                    // ETAPA 4: Exibir a resposta final para o usuário
                     typingIndicator.remove();
                     const htmlContent = converter.makeHtml(finalAnswer);
-                    appendMessage('assistant', htmlContent);
+                    const assistantMessageEl = appendMessage('assistant', htmlContent);
+                    
+                    // NOVO: Adiciona botões de execução aos blocos de código
+                    addExecutionButtons(assistantMessageEl);
 
                 } catch (error) {
                     console.error('Falha no fluxo de requisições:', error);
@@ -256,8 +260,21 @@ Abaixo está o prompt que precisa ser melhorado:
                     appendMessage('error', `<strong>Ocorreu um erro:</strong><br>${error.message}`);
                 } finally {
                     sendButton.prop('disabled', false);
+                    messageInput.focus();
                 }
             });
+
+            /**
+             * Adiciona botões "Exibição" acima de cada bloco de código <pre>
+             * @param {jQuery} messageElement - O elemento da mensagem do assistente.
+             */
+            function addExecutionButtons(messageElement) {
+                const codeBlocks = messageElement.find('pre');
+                codeBlocks.each(function() {
+                    const button = $('<button class="run-code-btn bg-slate-700 text-white text-sm font-medium py-1 px-3 rounded-md mb-2 hover:bg-slate-600 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">Exibição</button>');
+                    $(this).before(button);
+                });
+            }
 
             /**
              * Função para adicionar uma mensagem ao container do chat.
@@ -274,7 +291,7 @@ Abaixo está o prompt que precisa ser melhorado:
                 if (role === 'user') {
                     messageDiv = $(`
                         <div class="flex justify-end mb-4">
-                            <div class="bg-slate-800 text-white rounded-lg p-3 max-w-lg">
+                            <div class="bg-slate-800 text-white rounded-lg p-3 max-w-lg break-words">
                                 ${content}
                             </div>
                         </div>
@@ -302,6 +319,47 @@ Abaixo está o prompt que precisa ser melhorado:
                 chatContainer.scrollTop(chatContainer[0].scrollHeight);
                 return messageDiv;
             }
+
+            // --- Lógica do Modal ---
+
+            // Abre o modal ao clicar no botão de execução
+            chatContainer.on('click', '.run-code-btn', function() {
+                const preElement = $(this).next('pre');
+                const codeText = preElement.find('code').text().trim();
+                
+                // Limpa conteúdo anterior
+                modalContent.html('');
+
+                // Verifica se o código é executável (HTML, SVG) ou apenas para exibição
+                const isExecutable = /^\s*<(?:!DOCTYPE|html|svg)/i.test(codeText);
+
+                if (isExecutable) {
+                    // Cria um iframe para executar o código de forma isolada
+                    const iframe = $('<iframe>').attr('srcdoc', codeText).addClass('w-full h-full border-0');
+                    modalContent.html(iframe);
+                } else {
+                    // Para outros tipos de código, apenas exibe formatado
+                    const codeBlockClone = preElement.clone();
+                    modalContent.html(codeBlockClone);
+                }
+                
+                codeModal.removeClass('hidden').addClass('flex');
+            });
+
+            // Fecha o modal
+            function closeModal() {
+                codeModal.addClass('hidden').removeClass('flex');
+                // Limpa o conteúdo para parar qualquer script em execução no iframe
+                modalContent.html('');
+            }
+
+            closeModalBtn.on('click', closeModal);
+            codeModal.on('click', function(e) {
+                // Fecha o modal se o clique for no overlay (fundo)
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
         });
     </script>
     
