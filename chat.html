@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat com Groq LLM</title>
+    <title>Chat com Groq LLM Otimizado</title>
     
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,7 +63,7 @@
         
         <!-- Cabeçalho -->
         <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
-            <h1 class="text-xl font-bold">Groq LLM Chat</h1>
+            <h1 class="text-xl font-bold">Groq LLM Chat Otimizado</h1>
         </header>
 
         <!-- Container do Chat (onde as mensagens aparecem) -->
@@ -75,7 +75,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                     <p class="mt-2 text-lg">Comece uma conversa</p>
-                    <p class="text-sm">Escolha um modelo, insira sua chave e envie uma pergunta.</p>
+                    <p class="text-sm">Seu prompt será otimizado antes de gerar a resposta final.</p>
                 </div>
             </div>
         </main>
@@ -124,76 +124,138 @@
             const chatForm = $('#chat-form');
             const messageInput = $('#message');
             const apiKeyInput = $('#api-key');
-            const modelSelector = $('#model-selector'); // Novo seletor de modelo
+            const modelSelector = $('#model-selector');
             const chatContainer = $('#chat-container');
             const sendButton = $('#send-button');
             
             const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+            // 1. Definição do prompt otimizador
+            const PROMPT_ENHANCER_INSTRUCTIONS = `
+Aja como um engenheiro sênior de prompt especializado em modelos de linguagem de última geração (LLMs), com mais de 10 anos de experiência otimizando prompts para maximizar clareza, completude, precisão e concisão nas respostas. Você é referência na área de engenharia de prompt e já treinou equipes em empresas de tecnologia, educação e IA aplicada.
+
+Seu objetivo é analisar criticamente o prompt que será fornecido a seguir. Você deve reescrevê-lo de forma mais precisa, detalhada e eficiente, aplicando as melhores práticas da engenharia de prompt. Certifique-se de que a versão aprimorada:
+
+1. Atribua uma identidade clara ao modelo (por exemplo: 'aja como um especialista em...').
+2. Defina com clareza o objetivo do usuário.
+3. Estruture a tarefa em etapas claras e sequenciais.
+4. Utilize um tom profissional, específico e direto, evitando ambiguidades.
+5. Aumente a densidade informacional e a clareza do prompt original.
+6. Caso necessário, complemente com instruções adicionais que melhorem a profundidade e qualidade da resposta.
+7. Finalize o prompt com a instrução: 'Respire fundo e resolva esse problema passo a passo.'
+8. O prompt final deve estar no formato markdown dentro de uma estrutura de código de várias linhas, ou seja, estar entre 3 acentos graves.
+9. Retorne apenas o prompt final.
+
+Após aprimorar o prompt, avalie a versão final com uma nota de 0 a 10, justificando o motivo da nota com base nos critérios acima.
+
+Take a deep breath and work on this problem step-by-step.
+
+Abaixo está o prompt que precisa ser melhorado:
+`;
+            
+            /**
+             * Função reutilizável para chamar a API da Groq.
+             * @param {string} apiKey - A chave da API.
+             * @param {string} model - O modelo a ser usado.
+             * @param {Array} messages - O array de mensagens para a API.
+             * @returns {Promise<string>} - O conteúdo da resposta do assistente.
+             */
+            async function callGroqAPI(apiKey, model, messages) {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: messages
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    // Lança um erro para ser pego pelo bloco catch
+                    throw new Error(`Erro na API: ${errorData.error.message}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            }
+
+
             chatForm.on('submit', async function(e) {
-                e.preventDefault(); // Impede o recarregamento da página
+                e.preventDefault();
 
-                const message = messageInput.val().trim();
+                const userMessage = messageInput.val().trim();
                 const apiKey = apiKeyInput.val().trim();
-                const model = modelSelector.val(); // Pega o modelo selecionado
+                const model = modelSelector.val();
 
-                if (!message || !apiKey) {
-                    // Substituído alert por um modal customizado (ou outra UI) seria o ideal,
-                    // mas mantendo a simplicidade, o alert permanece.
-                    // Em um ambiente real, evite 'alert()'.
+                if (!userMessage || !apiKey) {
+                    // Em um app real, usar um modal ou notificação em vez de alert.
                     alert('Por favor, insira sua API Key e uma pergunta.');
                     return;
                 }
 
-                // Limpa o chat anterior e exibe a nova pergunta do usuário
                 chatContainer.html(''); 
-                appendMessage('user', message);
-                messageInput.val(''); // Limpa o campo de input
-                sendButton.prop('disabled', true); // Desabilita o botão durante o envio
+                appendMessage('user', userMessage);
+                messageInput.val('');
+                sendButton.prop('disabled', true);
 
-                // Adiciona o indicador de "digitando..."
                 const typingIndicator = appendMessage('assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
 
                 try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: model, // Usa o modelo selecionado dinamicamente
-                            messages: [{
-                                role: 'user',
-                                content: message
-                            }]
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Erro na API: ${errorData.error.message}`);
-                    }
-
-                    const data = await response.json();
-                    const assistantMessage = data.choices[0].message.content;
-
-                    // Remove o indicador de "digitando"
-                    typingIndicator.remove();
+                    // ETAPA 1: Criar o prompt para o otimizador
+                    const promptToEnhance = `${PROMPT_ENHANCER_INSTRUCTIONS}\n\n${userMessage}`;
                     
-                    // Converte a resposta (que pode ser Markdown) para HTML
-                    const htmlContent = converter.makeHtml(assistantMessage);
+                    // ETAPA 2: Chamar a API para obter o prompt melhorado
+                    console.log("Enviando para otimização...");
+                    const enhancedPromptResponse = await callGroqAPI(apiKey, model, [{ role: 'user', content: promptToEnhance }]);
+                    
+                    // *** INÍCIO DA CORREÇÃO ***
+                    // Extrai o prompt de dentro do bloco de código e a avaliação de forma mais robusta.
+                    const enhancedPromptMatch = enhancedPromptResponse.match(/```(?:.*\n)?([\s\S]*?)```/);
+                    let finalPrompt;
+                    let evaluation = "Avaliação não encontrada.";
 
-                    // Adiciona a resposta do assistente ao chat
+                    if (enhancedPromptMatch && enhancedPromptMatch[1]) {
+                        finalPrompt = enhancedPromptMatch[1].trim();
+                        
+                        // Tenta extrair a avaliação que vem depois do bloco de código
+                        const fullMatchText = enhancedPromptMatch[0];
+                        const evaluationStartIndex = enhancedPromptResponse.indexOf(fullMatchText) + fullMatchText.length;
+                        const potentialEvaluation = enhancedPromptResponse.substring(evaluationStartIndex).trim();
+                        if (potentialEvaluation) {
+                            evaluation = potentialEvaluation;
+                        }
+                        console.log("Prompt otimizado com sucesso.");
+                    } else {
+                        // Se a otimização falhar, usa o prompt original do usuário como fallback.
+                        console.warn("Otimização do prompt falhou. Usando o prompt original.");
+                        finalPrompt = userMessage; // Fallback para o prompt original
+                        evaluation = "A otimização do prompt não retornou um formato válido.";
+                    }
+                    // *** FIM DA CORREÇÃO ***
+
+                    console.log("Prompt Otimizado Recebido:\n", finalPrompt);
+                    console.log("Avaliação do Prompt:\n", evaluation);
+
+
+                    // ETAPA 3: Chamar a API com o prompt melhorado para obter a resposta final
+                    console.log("Enviando prompt otimizado para resposta final...");
+                    const finalAnswer = await callGroqAPI(apiKey, model, [{ role: 'user', content: finalPrompt }]);
+
+                    // ETAPA 4: Exibir a resposta final para o usuário
+                    typingIndicator.remove();
+                    const htmlContent = converter.makeHtml(finalAnswer);
                     appendMessage('assistant', htmlContent);
 
                 } catch (error) {
-                    console.error('Falha na requisição:', error);
-                    // Remove o indicador de "digitando" e mostra uma mensagem de erro
+                    console.error('Falha no fluxo de requisições:', error);
                     typingIndicator.remove();
                     appendMessage('error', `<strong>Ocorreu um erro:</strong><br>${error.message}`);
                 } finally {
-                    sendButton.prop('disabled', false); // Reabilita o botão
+                    sendButton.prop('disabled', false);
                 }
             });
 
@@ -207,10 +269,8 @@
             function appendMessage(role, content, isTyping = false) {
                 let messageDiv;
                 
-                // Centraliza o conteúdo da mensagem para melhor leitura em telas largas
                 const messageContentWrapper = `<div class="max-w-4xl mx-auto">${content}</div>`;
                 
-                // Estilos baseados no 'role'
                 if (role === 'user') {
                     messageDiv = $(`
                         <div class="flex justify-end mb-4">
@@ -239,10 +299,7 @@
                 }
 
                 chatContainer.append(messageDiv);
-                
-                // Rola para a parte inferior do chat
                 chatContainer.scrollTop(chatContainer[0].scrollHeight);
-                
                 return messageDiv;
             }
         });
