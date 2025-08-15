@@ -3,278 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melhorador de Prompt com IA</title>
-    <!-- Incluindo Tailwind CSS -->
+    <title>Chat com Groq LLM</title>
+    
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Incluindo jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Incluindo a biblioteca Marked.js para renderizar Markdown -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- jQuery via CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- Showdown.js (para renderizar Markdown da resposta) via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        /* Estilo para a fonte Inter */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        /* Estilo base para o corpo da página */
         body {
             font-family: 'Inter', sans-serif;
         }
         /* Estilo para a barra de rolagem */
-        #chat-window::-webkit-scrollbar {
+        #chat-container::-webkit-scrollbar {
             width: 8px;
         }
-        #chat-window::-webkit-scrollbar-track {
+        #chat-container::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
-        #chat-window::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 20px;
-            border: 3px solid #f1f5f9;
+        #chat-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
         }
-        /* Estilo para o conteúdo renderizado pelo Marked.js */
-        .prose p {
-            margin-bottom: 1rem;
+        #chat-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
-        .prose h1, .prose h2, .prose h3 {
-            margin-bottom: 0.5rem;
-            margin-top: 1.5rem;
-        }
-        .prose ul, .prose ol {
-            margin-left: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .prose li {
-            margin-bottom: 0.25rem;
-        }
+        /* Estilos para o conteúdo gerado pelo Markdown */
         .prose pre {
-            background-color: #f3f4f6;
+            background-color: #1e293b;
+            color: #e2e8f0;
             padding: 1rem;
             border-radius: 0.5rem;
             overflow-x: auto;
         }
         .prose code {
-            font-family: monospace;
+            color: #e2e8f0;
+        }
+        .prose h1, .prose h2, .prose h3 {
+            font-weight: 600;
         }
     </style>
 </head>
-<body class="bg-slate-100 flex flex-col h-screen">
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
 
-    <!-- Cabeçalho -->
-    <header class="bg-white border-b border-slate-200 p-4 shadow-sm">
-        <h1 class="text-xl font-semibold text-slate-800">Melhorador de Prompt com IA</h1>
-        <p class="text-sm text-slate-500">Digite um prompt e a IA irá aprimorá-lo antes de gerar a resposta final.</p>
-    </header>
+    <div class="w-full max-w-3xl mx-auto flex flex-col h-[90vh] bg-white shadow-2xl rounded-2xl overflow-hidden">
+        
+        <!-- Cabeçalho -->
+        <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md">
+            <h1 class="text-xl font-bold">Groq LLM Chat</h1>
+            <span class="text-sm font-medium">Modelo: llama3-8b-8192</span>
+        </header>
 
-    <!-- Janela do Chat -->
-    <main id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
-        <!-- Mensagem inicial do AI -->
-        <div class="flex items-start gap-3">
-            <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
-            <div class="bg-white p-4 rounded-lg shadow-sm max-w-2xl prose">
-                <p>Faça uma pergunta que trarei a sua resposta.</p>
+        <!-- Container do Chat (onde as mensagens aparecem) -->
+        <main id="chat-container" class="flex-1 p-6 overflow-y-auto bg-slate-50">
+            <!-- Mensagem inicial de boas-vindas -->
+            <div class="flex justify-center items-center h-full">
+                <div class="text-center text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p class="mt-2 text-lg">Comece uma conversa</p>
+                    <p class="text-sm">Insira sua chave de API e envie uma pergunta.</p>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
 
-    <!-- Área de Digitação -->
-    <footer class="bg-white border-t border-slate-200 p-4">
-        <div class="max-w-3xl mx-auto">
-            <div class="relative">
-                <textarea id="user-input" class="w-full border-slate-300 rounded-lg p-3 pr-28 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Digite seu prompt aqui..." rows="1"></textarea>
-                <button id="send-button" class="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white font-semibold rounded-lg px-5 py-2 hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed">
-                    Enviar
-                </button>
-            </div>
-        </div>
-    </footer>
+        <!-- Formulário de Envio -->
+        <footer class="p-4 bg-white border-t border-slate-200">
+            <form id="chat-form" class="space-y-3">
+                <!-- Input da API Key -->
+                <div>
+                     <input type="password" id="api-key" placeholder="Cole sua Groq API Key aqui (gsk_...)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required>
+                </div>
+                <!-- Input da Mensagem -->
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="message" placeholder="Digite sua pergunta..." class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" autocomplete="off" required>
+                    <button type="submit" id="send-button" class="bg-slate-800 text-white p-3 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-800 transition-transform transform active:scale-95 disabled:bg-slate-400 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </footer>
+    </div>
 
     <script>
         $(document).ready(function() {
-            const userInput = $('#user-input');
+            // Instancia o conversor de Markdown
+            const converter = new showdown.Converter({
+                tables: true,
+                strikethrough: true,
+                tasklists: true,
+                simpleLineBreaks: true
+            });
+
+            const chatForm = $('#chat-form');
+            const messageInput = $('#message');
+            const apiKeyInput = $('#api-key');
+            const chatContainer = $('#chat-container');
             const sendButton = $('#send-button');
-            const chatWindow = $('#chat-window');
+            
+            const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-            // Ajusta a altura do textarea dinamicamente
-            userInput.on('input', function () {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-            });
+            chatForm.on('submit', async function(e) {
+                e.preventDefault(); // Impede o recarregamento da página
 
-            // Função para enviar mensagem com Enter, exceto com Shift
-            userInput.on('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
+                const message = messageInput.val().trim();
+                const apiKey = apiKeyInput.val().trim();
+
+                if (!message || !apiKey) {
+                    // Simples validação para garantir que os campos não estão vazios
+                    alert('Por favor, insira sua API Key e uma pergunta.');
+                    return;
                 }
-            });
 
-            // Função para enviar mensagem com clique no botão
-            sendButton.on('click', sendMessage);
+                // Limpa o chat anterior e exibe a nova pergunta do usuário
+                chatContainer.html(''); 
+                appendMessage('user', message);
+                messageInput.val(''); // Limpa o campo de input
+                sendButton.prop('disabled', true); // Desabilita o botão durante o envio
 
-            function sendMessage() {
-                const messageText = userInput.val().trim();
-                if (messageText === '') return;
-                
-                // Limpa o chat para uma nova conversa, mantendo a mensagem inicial
-                chatWindow.find('.flex.items-start.gap-3:not(:first)').remove();
-                chatWindow.find('.flex.items-start.gap-3.justify-end').remove();
-
-                // Exibe a mensagem do usuário na tela
-                const userMessageHtml = `
-                    <div class="flex items-start gap-3 justify-end">
-                        <div class="bg-slate-200 p-4 rounded-lg shadow-sm max-w-2xl">
-                            <p>${messageText}</p>
-                        </div>
-                        <div class="bg-slate-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">Você</div>
-                    </div>
-                `;
-                const userMessageElement = $(userMessageHtml);
-                chatWindow.append(userMessageElement);
-                userMessageElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
-
-
-                // Limpa o input e reseta a altura
-                userInput.val('');
-                userInput.css('height', 'auto');
-                
-                // Desativa o botão de envio e mostra o indicador de "digitando"
-                sendButton.prop('disabled', true);
-                showTypingIndicator();
-
-                // Inicia o processo de duas chamadas para a API
-                processMessage(messageText);
-            }
-
-            function showTypingIndicator() {
-                const typingIndicatorHtml = `
-                    <div id="typing-indicator" class="flex items-start gap-3">
-                        <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
-                        <div class="bg-white p-4 rounded-lg shadow-sm">
-                            <div class="flex items-center space-x-1">
-                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0s;"></div>
-                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
-                                <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                const typingIndicatorElement = $(typingIndicatorHtml);
-                chatWindow.append(typingIndicatorElement);
-                typingIndicatorElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
-            }
-
-            async function processMessage(userMessage) {
-                // NOTA DE SEGURANÇA: A chave da API não deve ser exposta no código do lado do cliente.
-                // O ideal é que as chamadas de API sejam feitas a partir de um backend seguro.
-                // Deixando em branco conforme a instrução original.
-                const apiKey = "AIzaSyCbo_kW7lwB8qgP_ND7qXN2MTjccVmhSyI"; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-                const promptImproverInstructions = `Aja como um engenheiro sênior de prompt especializado em modelos de linguagem de última geração (LLMs), com mais de 10 anos de experiência otimizando prompts para maximizar clareza, completude, precisão e concisão nas respostas. Você é referência na área de engenharia de prompt e já treinou equipes em empresas de tecnologia, educação e IA aplicada.
-
-Seu objetivo é analisar criticamente o prompt que será fornecido a seguir. Você deve reescrevê-lo de forma mais precisa, detalhada e eficiente, aplicando as melhores práticas da engenharia de prompt. Certifique-se de que a versão aprimorada:
-
-1. Atribua uma identidade clara ao modelo (por exemplo: 'aja como um especialista em...').
-2. Defina com clareza o objetivo do usuário.
-3. Estruture a tarefa em etapas claras e sequenciais.
-4. Utilize um tom profissional, específico e direto, evitando ambiguidades.
-5. Aumente a densidade informacional e a clareza do prompt original.
-6. Caso necessário, complemente com instruções adicionais que melhorem a profundidade e qualidade da resposta.
-7. Finalize o prompt com a instrução: 'Respire fundo e resolva esse problema passo a passo.'
-8. Prompt final deve estar no formato markdown dentro de uma estrutura de código de várias linhas, ou seja, estar entre 3 acentos cases.
-9. Não mostre mais nada na resposta além do prompt melhorado.
-
-Após aprimorar o prompt, avalie a versão final com uma nota de 0 a 10, justificando o motivo da nota com base nos critérios acima.
-
-Take a deep breath and work on this problem step-by-step.
-
-Abaixo está o prompt que precisa se melhorado:`;
-
-                const firstPrompt = `${promptImproverInstructions}\n\n${userMessage}`;
+                // Adiciona o indicador de "digitando..."
+                const typingIndicator = appendMessage('assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
 
                 try {
-                    // --- Primeira Chamada da API: Melhorar o prompt ---
-                    const firstPayload = {
-                        contents: [{ role: "user", parts: [{ text: firstPrompt }] }],
-                        generationConfig: { temperature: 0.5, maxOutputTokens: 2048 },
-                    };
-
-                    const firstResponse = await fetch(apiUrl, {
+                    const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(firstPayload),
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'llama3-8b-8192', // Modelo utilizado
+                            messages: [{
+                                role: 'user',
+                                content: message
+                            }]
+                        })
                     });
 
-                    if (!firstResponse.ok) {
-                        const errorData = await firstResponse.json();
-                        throw new Error(`Erro ao melhorar o prompt: ${errorData.error.message}`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Erro na API: ${errorData.error.message}`);
                     }
 
-                    const firstResult = await firstResponse.json();
-                    let improvedPrompt = "";
-                    if (firstResult.candidates && firstResult.candidates.length > 0 &&
-                        firstResult.candidates[0].content && firstResult.candidates[0].content.parts &&
-                        firstResult.candidates[0].content.parts.length > 0) {
-                        improvedPrompt = firstResult.candidates[0].content.parts[0].text;
-                    } else {
-                        throw new Error("A resposta da API para melhorar o prompt estava em um formato inesperado ou vazia.");
-                    }
+                    const data = await response.json();
+                    const assistantMessage = data.choices[0].message.content;
+
+                    // Remove o indicador de "digitando"
+                    typingIndicator.remove();
                     
-                    // --- Segunda Chamada da API: Obter a resposta final ---
-                    const secondPayload = {
-                        contents: [{ role: "user", parts: [{ text: improvedPrompt }] }],
-                        generationConfig: { temperature: 0.7, topK: 1, topP: 1, maxOutputTokens: 2048 },
-                    };
+                    // Converte a resposta (que pode ser Markdown) para HTML
+                    const htmlContent = converter.makeHtml(assistantMessage);
 
-                    const secondResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(secondPayload),
-                    });
-
-                    if (!secondResponse.ok) {
-                        const errorData = await secondResponse.json();
-                        throw new Error(`Erro ao gerar a resposta final: ${errorData.error.message}`);
-                    }
-
-                    const secondResult = await secondResponse.json();
-                    let finalAnswer = "Não foi possível obter uma resposta final.";
-                    if (secondResult.candidates && secondResult.candidates.length > 0 &&
-                        secondResult.candidates[0].content && secondResult.candidates[0].content.parts &&
-                        secondResult.candidates[0].content.parts.length > 0) {
-                        finalAnswer = secondResult.candidates[0].content.parts[0].text;
-                    } else {
-                        throw new Error("A resposta final da API estava em um formato inesperado ou vazia.");
-                    }
-
-                    displayAiResponse(finalAnswer);
+                    // Adiciona a resposta do assistente ao chat
+                    appendMessage('assistant', htmlContent);
 
                 } catch (error) {
-                    console.error("Erro no processo de mensagem:", error);
-                    displayAiResponse(`**Erro:** ${error.message}`);
+                    console.error('Falha na requisição:', error);
+                    // Remove o indicador de "digitando" e mostra uma mensagem de erro
+                    typingIndicator.remove();
+                    appendMessage('error', `<strong>Ocorreu um erro:</strong><br>${error.message}`);
                 } finally {
-                    $('#typing-indicator').remove();
-                    sendButton.prop('disabled', false);
-                    userInput.focus();
+                    sendButton.prop('disabled', false); // Reabilita o botão
                 }
-            }
+            });
 
-            function displayAiResponse(text) {
-                $('#typing-indicator').remove();
+            /**
+             * Função para adicionar uma mensagem ao container do chat.
+             * @param {string} role - 'user', 'assistant' ou 'error'.
+             * @param {string} content - O conteúdo HTML da mensagem.
+             * @param {boolean} isTyping - Se é um indicador de "digitando".
+             * @returns {jQuery} O elemento da mensagem adicionado.
+             */
+            function appendMessage(role, content, isTyping = false) {
+                let messageDiv;
                 
-                const formattedText = marked.parse(text);
-
-                const aiMessageHtml = `
-                    <div class="flex items-start gap-3">
-                        <div class="bg-blue-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
-                        <div class="bg-white p-4 rounded-lg shadow-sm max-w-2xl prose prose-slate">
-                            ${formattedText}
+                // Estilos baseados no 'role'
+                if (role === 'user') {
+                    messageDiv = $(`
+                        <div class="flex justify-end mb-4">
+                            <div class="bg-slate-800 text-white rounded-lg p-3 max-w-lg">
+                                ${content}
+                            </div>
                         </div>
-                    </div>
-                `;
-                const aiMessageElement = $(aiMessageHtml);
-                chatWindow.append(aiMessageElement);
-                aiMessageElement[0].scrollIntoView({ behavior: "smooth", block: "end" });
+                    `);
+                } else if (role === 'assistant') {
+                    const typingClass = isTyping ? '' : 'prose prose-slate max-w-none';
+                    messageDiv = $(`
+                        <div class="flex justify-start mb-4">
+                            <div class="bg-slate-200 text-slate-800 rounded-lg p-3 max-w-lg ${typingClass}">
+                                ${content}
+                            </div>
+                        </div>
+                    `);
+                } else if (role === 'error') {
+                     messageDiv = $(`
+                        <div class="flex justify-start mb-4">
+                            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 max-w-lg">
+                                ${content}
+                            </div>
+                        </div>
+                    `);
+                }
+
+                chatContainer.append(messageDiv);
+                
+                // Rola para a parte inferior do chat
+                chatContainer.scrollTop(chatContainer[0].scrollHeight);
+                
+                return messageDiv;
             }
         });
     </script>
+    
+    <!-- Estilo para o indicador de "digitando" -->
+    <style>
+        .typing-indicator span {
+            display: inline-block;
+            animation: bounce 1.4s infinite;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-8px);
+            }
+        }
+    </style>
 
 </body>
 </html>
