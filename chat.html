@@ -5,40 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat com Groq LLM Otimizado</title>
     
-    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- jQuery via CDN -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
-    <!-- Showdown.js (para renderizar Markdown da resposta) via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
 
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+
     <style>
-        /* Estilo base para o corpo da página */
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Estilo para a barra de rolagem */
-        #chat-container::-webkit-scrollbar, #code-view-content::-webkit-scrollbar {
+        #chat-container::-webkit-scrollbar, #code-view-content::-webkit-scrollbar, .line-numbers::-webkit-scrollbar {
             width: 8px;
         }
-        #chat-container::-webkit-scrollbar-track, #code-view-content::-webkit-scrollbar-track {
+        #chat-container::-webkit-scrollbar-track, #code-view-content::-webkit-scrollbar-track, .line-numbers::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
-        #chat-container::-webkit-scrollbar-thumb, #code-view-content::-webkit-scrollbar-thumb {
+        #chat-container::-webkit-scrollbar-thumb, #code-view-content::-webkit-scrollbar-thumb, .line-numbers::-webkit-scrollbar-thumb {
             background: #94a3b8;
             border-radius: 10px;
         }
-        #chat-container::-webkit-scrollbar-thumb:hover, #code-view-content::-webkit-scrollbar-thumb:hover {
+        #chat-container::-webkit-scrollbar-thumb:hover, #code-view-content::-webkit-scrollbar-thumb:hover, .line-numbers::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
-        /* Estilos para o conteúdo gerado pelo Markdown */
         .prose {
             max-width: none;
         }
@@ -61,20 +57,21 @@
             border: none;
             border-radius: 0.25rem;
         }
+        #code-view-content pre[class*="language-"] {
+            margin: 0;
+            height: 100%;
+        }
     </style>
 </head>
 <body class="bg-slate-100">
 
     <div id="main-container" class="w-full flex flex-col h-screen bg-white">
         
-        <!-- Cabeçalho -->
         <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
             <h1 class="text-xl font-bold">Groq LLM Chat Otimizado</h1>
         </header>
 
-        <!-- Container do Chat (onde as mensagens aparecem) -->
         <main id="chat-container" class="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-50">
-            <!-- Mensagem inicial de boas-vindas -->
             <div class="flex justify-center items-center h-full">
                 <div class="text-center text-slate-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
@@ -86,10 +83,8 @@
             </div>
         </main>
 
-        <!-- Formulário de Envio -->
         <footer class="p-4 bg-white border-t border-slate-200 flex-shrink-0">
             <form id="chat-form" class="max-w-4xl mx-auto space-y-3">
-                <!-- Seletor de Modelo -->
                 <div>
                     <label for="model-selector" class="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
                     <select id="model-selector" class="w-full p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -99,11 +94,9 @@
                         <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
                     </select>
                 </div>
-                <!-- Input da API Key -->
                 <div>
                      <input type="password" id="api-key" placeholder="Cole sua Groq API Key aqui (gsk_...)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required>
                 </div>
-                <!-- Input da Mensagem -->
                 <div class="flex items-center space-x-2">
                     <input type="text" id="message" placeholder="Digite sua pergunta..." class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" autocomplete="off" required>
                     <button type="submit" id="send-button" class="bg-slate-800 text-white p-3 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-800 transition-transform transform active:scale-95 disabled:bg-slate-400 disabled:cursor-not-allowed">
@@ -116,7 +109,6 @@
         </footer>
     </div>
 
-    <!-- Split View Container -->
     <div id="split-view" class="hidden w-full h-screen bg-white">
         <div class="w-1/2 flex flex-col">
             <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
@@ -133,11 +125,16 @@
                 </button>
             </header>
             <div id="code-view-content" class="p-4 flex-1 overflow-auto bg-slate-100">
-                <!-- Code or Iframe will be injected here -->
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-svg.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -216,6 +213,11 @@ Abaixo está o prompt que precisa ser melhorado:
                 const userMessage = messageInput.val().trim();
                 const apiKey = apiKeyInput.val().trim();
                 const model = modelSelector.val();
+                console.log('userMenssage')
+                console.log(userMessage)
+                
+                console.log('apikey')
+                console.log(apiKey)
 
                 if (!userMessage || !apiKey) {
                     appendMessage(chatContainer, 'error', 'Por favor, insira sua API Key e uma pergunta.');
@@ -230,9 +232,11 @@ Abaixo está o prompt que precisa ser melhorado:
                 const typingIndicator = appendMessage(chatContainer, 'assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
 
                 try {
-                    const promptToEnhance = `${PROMPT_ENHANCER_INSTRUCTIONS}\n\n${userMessage}`;
+                    const promptToEnhance = `${PROMPT_ENHANCER_INSTRUCTIONS}
+
+${userMessage}`;
                     const enhancedPromptResponse = await callGroqAPI(apiKey, model, [{ role: 'user', content: promptToEnhance }]);
-                    const enhancedPromptMatch = enhancedPromptResponse.match(/```(?:.*\n)?([\s\S]*?)```/);
+                    const enhancedPromptMatch = enhancedPromptResponse.match(/```(?:.*)?([\s\S]*?)```/);
                     let finalPrompt = enhancedPromptMatch && enhancedPromptMatch[1] ? enhancedPromptMatch[1].trim() : userMessage;
                     
                     const finalAnswer = await callGroqAPI(apiKey, model, [{ role: 'user', content: finalPrompt }]);
@@ -266,8 +270,8 @@ Abaixo está o prompt que precisa ser melhorado:
                 
                 if (role === 'user') {
                     messageDiv = $(
-                        `<div class=\"flex justify-end mb-4\">
-                            <div class=\"bg-slate-800 text-white rounded-lg p-3 max-w-lg break-words\">
+                        `<div class="flex justify-end mb-4">
+                            <div class="bg-slate-800 text-white rounded-lg p-3 max-w-lg break-words">
                                 ${content}
                             </div>
                         </div>`
@@ -275,16 +279,16 @@ Abaixo está o prompt que precisa ser melhorado:
                 } else if (role === 'assistant') {
                     const typingClass = isTyping ? '' : 'prose prose-slate';
                     messageDiv = $(
-                        `<div class=\"flex justify-start mb-4\">
-                            <div class=\"bg-slate-200 text-slate-800 rounded-lg p-3 w-full ${typingClass}\">
+                        `<div class="flex justify-start mb-4">
+                            <div class="bg-slate-200 text-slate-800 rounded-lg p-3 w-full ${typingClass}">
                                 ${isTyping ? content : messageContentWrapper}
                             </div>
                         </div>`
                     );
                 } else if (role === 'error') {
                      messageDiv = $(
-                        `<div class=\"flex justify-start mb-4\">
-                            <div class=\"bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 w-full\">
+                        `<div class="flex justify-start mb-4">
+                            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 w-full">
                                 ${messageContentWrapper}
                             </div>
                         </div>`
@@ -319,8 +323,10 @@ Abaixo está o prompt que precisa ser melhorado:
                 codeViewContent.html('');
                 if (isPreview) {
                     toggleViewBtn.text('View Code');
-                    const isExecutable = /^\s*<(?:!DOCTYPE|html|svg)/i.test(currentCode);
-                    if (isExecutable) {
+                    const isSvg = /^\s*<svg/i.test(currentCode) || /^\s*<xml.*<svg/i.test(currentCode);
+                    const isHtml = /^\s*<(?:!DOCTYPE|html)/i.test(currentCode);
+
+                    if (isHtml || isSvg) {
                         const iframe = $('<iframe>').attr('srcdoc', currentCode);
                         codeViewContent.html(iframe);
                     } else {
@@ -328,9 +334,10 @@ Abaixo está o prompt que precisa ser melhorado:
                     }
                 } else {
                     toggleViewBtn.text('Preview');
-                    const codeBlock = $('<pre class="h-full"><code class="language-markup"></code></pre>');
+                    const codeBlock = $('<pre class="line-numbers h-full"><code class="language-markup"></code></pre>');
                     codeBlock.find('code').text(currentCode);
                     codeViewContent.html(codeBlock);
+                    Prism.highlightAllUnder(codeViewContent[0]);
                 }
             }
 
