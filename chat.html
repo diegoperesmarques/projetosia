@@ -25,22 +25,22 @@
             font-family: 'Inter', sans-serif;
         }
         /* Estilo para a barra de rolagem */
-        #chat-container::-webkit-scrollbar {
+        #chat-container::-webkit-scrollbar, #code-view-content::-webkit-scrollbar {
             width: 8px;
         }
-        #chat-container::-webkit-scrollbar-track {
+        #chat-container::-webkit-scrollbar-track, #code-view-content::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
-        #chat-container::-webkit-scrollbar-thumb {
+        #chat-container::-webkit-scrollbar-thumb, #code-view-content::-webkit-scrollbar-thumb {
             background: #94a3b8;
             border-radius: 10px;
         }
-        #chat-container::-webkit-scrollbar-thumb:hover {
+        #chat-container::-webkit-scrollbar-thumb:hover, #code-view-content::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
         /* Estilos para o conteúdo gerado pelo Markdown */
         .prose {
-            max-width: none; /* Reseta o max-width do prose para ocupar o espaço disponível */
+            max-width: none;
         }
         .prose pre {
             background-color: #1e293b;
@@ -55,8 +55,7 @@
         .prose h1, .prose h2, .prose h3 {
             font-weight: 600;
         }
-        /* Estilo para o iframe no modal */
-        #modal-content iframe {
+        #code-view-content iframe {
             width: 100%;
             height: 100%;
             border: none;
@@ -66,7 +65,7 @@
 </head>
 <body class="bg-slate-100">
 
-    <div class="w-full flex flex-col h-screen bg-white">
+    <div id="main-container" class="w-full flex flex-col h-screen bg-white">
         
         <!-- Cabeçalho -->
         <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
@@ -95,9 +94,9 @@
                     <label for="model-selector" class="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
                     <select id="model-selector" class="w-full p-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         <option value="llama3-8b-8192" selected>Llama3 8B (8k)</option>
-                        <option value="openai/gpt-oss-20b" selected>openai/gpt-oss-20b</option>
-                        <option value="llama-3.3-70b-versatile" selected>llama-3.3-70b-versatile</option>
-                        <option value="openai/gpt-oss-120b" selected>openai/gpt-oss-120b</option>
+                        <option value="openai/gpt-oss-20b">openai/gpt-oss-20b</option>
+                        <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+                        <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
                     </select>
                 </div>
                 <!-- Input da API Key -->
@@ -117,15 +116,24 @@
         </footer>
     </div>
 
-    <!-- Modal para Exibição de Código -->
-    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-3 border-b bg-slate-50 rounded-t-lg">
-                <h3 class="text-lg font-semibold text-slate-700">Visualização de Código</h3>
-                <button id="close-modal-btn" class="text-slate-500 hover:text-slate-800 text-3xl leading-none">&times;</button>
-            </div>
-            <div id="modal-content" class="p-4 flex-1 overflow-auto bg-slate-100">
-                <!-- Iframe ou <pre><code> com o código será injetado aqui -->
+    <!-- Split View Container -->
+    <div id="split-view" class="hidden w-full h-screen bg-white">
+        <div class="w-1/2 flex flex-col">
+            <header class="bg-slate-800 text-white p-4 flex items-center justify-between shadow-md flex-shrink-0">
+                <h1 class="text-xl font-bold">Chat</h1>
+                 <button id="close-split-view-btn" class="text-slate-300 hover:text-white text-2xl leading-none">&times;</button>
+            </header>
+            <main id="split-chat-container" class="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-50"></main>
+        </div>
+        <div class="w-1/2 flex flex-col border-l border-slate-200">
+            <header class="bg-slate-50 p-3 flex items-center justify-between border-b">
+                <h3 class="text-lg font-semibold text-slate-700">Visualização</h3>
+                <button id="toggle-view-btn" class="bg-slate-200 text-slate-700 text-sm font-medium py-1 px-3 rounded-md hover:bg-slate-300 transition">
+                    Preview
+                </button>
+            </header>
+            <div id="code-view-content" class="p-4 flex-1 overflow-auto bg-slate-100">
+                <!-- Code or Iframe will be injected here -->
             </div>
         </div>
     </div>
@@ -133,7 +141,6 @@
 
     <script>
         $(document).ready(function() {
-            // Instancia o conversor de Markdown
             const converter = new showdown.Converter({
                 tables: true,
                 strikethrough: true,
@@ -142,20 +149,24 @@
                 ghCompatibleHeaderId: true,
             });
 
-            // Referências aos elementos do DOM
             const chatForm = $('#chat-form');
             const messageInput = $('#message');
             const apiKeyInput = $('#api-key');
             const modelSelector = $('#model-selector');
             const chatContainer = $('#chat-container');
             const sendButton = $('#send-button');
-            const codeModal = $('#code-modal');
-            const modalContent = $('#modal-content');
-            const closeModalBtn = $('#close-modal-btn');
             
-            const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+            const mainContainer = $('#main-container');
+            const splitView = $('#split-view');
+            const splitChatContainer = $('#split-chat-container');
+            const codeViewContent = $('#code-view-content');
+            const toggleViewBtn = $('#toggle-view-btn');
+            const closeSplitViewBtn = $('#close-split-view-btn');
 
-            // 1. Definição do prompt otimizador
+            let currentCode = '';
+            let isPreview = false;
+
+            const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
             const PROMPT_ENHANCER_INSTRUCTIONS = `
 Aja como um engenheiro sênior de prompt especializado em modelos de linguagem de última geração (LLMs), com mais de 10 anos de experiência otimizando prompts para maximizar clareza, completude, precisão e concisão nas respostas. Você é referência na área de engenharia de prompt e já treinou equipes em empresas de tecnologia, educação e IA aplicada.
 
@@ -178,13 +189,6 @@ Take a deep breath and work on this problem step-by-step.
 Abaixo está o prompt que precisa ser melhorado:
 `;
             
-            /**
-             * Função reutilizável para chamar a API da Groq.
-             * @param {string} apiKey - A chave da API.
-             * @param {string} model - O modelo a ser usado.
-             * @param {Array} messages - O array de mensagens para a API.
-             * @returns {Promise<string>} - O conteúdo da resposta do assistente.
-             */
             async function callGroqAPI(apiKey, model, messages) {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -207,163 +211,138 @@ Abaixo está o prompt que precisa ser melhorado:
                 return data.choices[0].message.content;
             }
 
-
             chatForm.on('submit', async function(e) {
                 e.preventDefault();
-
                 const userMessage = messageInput.val().trim();
                 const apiKey = apiKeyInput.val().trim();
                 const model = modelSelector.val();
 
                 if (!userMessage || !apiKey) {
-                    appendMessage('error', 'Por favor, insira sua API Key e uma pergunta.');
+                    appendMessage(chatContainer, 'error', 'Por favor, insira sua API Key e uma pergunta.');
                     return;
                 }
 
                 chatContainer.find('.flex.justify-center.items-center.h-full').remove();
-                appendMessage('user', userMessage);
+                appendMessage(chatContainer, 'user', userMessage);
                 messageInput.val('');
                 sendButton.prop('disabled', true);
 
-                const typingIndicator = appendMessage('assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
+                const typingIndicator = appendMessage(chatContainer, 'assistant', '<div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>', true);
 
                 try {
                     const promptToEnhance = `${PROMPT_ENHANCER_INSTRUCTIONS}\n\n${userMessage}`;
-                    
-                    console.log("Enviando para otimização...");
                     const enhancedPromptResponse = await callGroqAPI(apiKey, model, [{ role: 'user', content: promptToEnhance }]);
-                    
                     const enhancedPromptMatch = enhancedPromptResponse.match(/```(?:.*\n)?([\s\S]*?)```/);
-                    let finalPrompt;
-
-                    if (enhancedPromptMatch && enhancedPromptMatch[1]) {
-                        finalPrompt = enhancedPromptMatch[1].trim();
-                        console.log("Prompt otimizado com sucesso.");
-                    } else {
-                        console.warn("Otimização do prompt falhou. Usando o prompt original.");
-                        finalPrompt = userMessage;
-                    }
+                    let finalPrompt = enhancedPromptMatch && enhancedPromptMatch[1] ? enhancedPromptMatch[1].trim() : userMessage;
                     
-                    console.log("Enviando prompt otimizado para resposta final...");
                     const finalAnswer = await callGroqAPI(apiKey, model, [{ role: 'user', content: finalPrompt }]);
-
                     typingIndicator.remove();
                     const htmlContent = converter.makeHtml(finalAnswer);
-                    const assistantMessageEl = appendMessage('assistant', htmlContent);
-                    
-                    // NOVO: Adiciona botões de execução aos blocos de código
+                    const assistantMessageEl = appendMessage(chatContainer, 'assistant', htmlContent);
                     addExecutionButtons(assistantMessageEl);
 
                 } catch (error) {
                     console.error('Falha no fluxo de requisições:', error);
                     typingIndicator.remove();
-                    appendMessage('error', `<strong>Ocorreu um erro:</strong><br>${error.message}`);
+                    appendMessage(chatContainer, 'error', `<strong>Ocorreu um erro:</strong><br>${error.message}`);
                 } finally {
                     sendButton.prop('disabled', false);
                     messageInput.focus();
                 }
             });
 
-            /**
-             * Adiciona botões "Exibição" acima de cada bloco de código <pre>
-             * @param {jQuery} messageElement - O elemento da mensagem do assistente.
-             */
             function addExecutionButtons(messageElement) {
                 const codeBlocks = messageElement.find('pre');
                 codeBlocks.each(function() {
-                    const button = $('<button class="run-code-btn bg-slate-700 text-white text-sm font-medium py-1 px-3 rounded-md mb-2 hover:bg-slate-600 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">Exibição</button>');
+                    const button = $('<button class="view-code-btn bg-slate-700 text-white font-medium py-2 px-4 rounded-lg w-full text-center mt-2 mb-2 hover:bg-slate-600 transition">View Code</button>');
                     $(this).before(button);
+                    $(this).hide(); // Hide the original code block
                 });
             }
 
-            /**
-             * Função para adicionar uma mensagem ao container do chat.
-             * @param {string} role - 'user', 'assistant' ou 'error'.
-             * @param {string} content - O conteúdo HTML da mensagem.
-             * @param {boolean} isTyping - Se é um indicador de "digitando".
-             * @returns {jQuery} O elemento da mensagem adicionado.
-             */
-            function appendMessage(role, content, isTyping = false) {
+            function appendMessage(container, role, content, isTyping = false) {
                 let messageDiv;
-                
                 const messageContentWrapper = `<div class="max-w-4xl mx-auto">${content}</div>`;
                 
                 if (role === 'user') {
-                    messageDiv = $(`
-                        <div class="flex justify-end mb-4">
-                            <div class="bg-slate-800 text-white rounded-lg p-3 max-w-lg break-words">
+                    messageDiv = $(
+                        `<div class=\"flex justify-end mb-4\">
+                            <div class=\"bg-slate-800 text-white rounded-lg p-3 max-w-lg break-words\">
                                 ${content}
                             </div>
-                        </div>
-                    `);
+                        </div>`
+                    );
                 } else if (role === 'assistant') {
                     const typingClass = isTyping ? '' : 'prose prose-slate';
-                    messageDiv = $(`
-                        <div class="flex justify-start mb-4">
-                            <div class="bg-slate-200 text-slate-800 rounded-lg p-3 w-full ${typingClass}">
+                    messageDiv = $(
+                        `<div class=\"flex justify-start mb-4\">
+                            <div class=\"bg-slate-200 text-slate-800 rounded-lg p-3 w-full ${typingClass}\">
                                 ${isTyping ? content : messageContentWrapper}
                             </div>
-                        </div>
-                    `);
+                        </div>`
+                    );
                 } else if (role === 'error') {
-                     messageDiv = $(`
-                        <div class="flex justify-start mb-4">
-                            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 w-full">
+                     messageDiv = $(
+                        `<div class=\"flex justify-start mb-4\">
+                            <div class=\"bg-red-100 text-red-800 border border-red-300 rounded-lg p-3 w-full\">
                                 ${messageContentWrapper}
                             </div>
-                        </div>
-                    `);
+                        </div>`
+                    );
                 }
 
-                chatContainer.append(messageDiv);
-                chatContainer.scrollTop(chatContainer[0].scrollHeight);
+                container.append(messageDiv);
+                container.scrollTop(container[0].scrollHeight);
                 return messageDiv;
             }
 
-            // --- Lógica do Modal ---
+            // --- Split View Logic ---
 
-            // Abre o modal ao clicar no botão de execução
-            chatContainer.on('click', '.run-code-btn', function() {
-                const preElement = $(this).next('pre');
-                const codeText = preElement.find('code').text().trim();
+            chatContainer.on('click', '.view-code-btn', function() {
+                currentCode = $(this).next('pre').find('code').text().trim();
                 
-                // Limpa conteúdo anterior
-                modalContent.html('');
+                mainContainer.addClass('hidden');
+                splitView.addClass('flex').removeClass('hidden');
 
-                // Verifica se o código é executável (HTML, SVG) ou apenas para exibição
-                const isExecutable = /^\s*<(?:!DOCTYPE|html|svg)/i.test(codeText);
+                splitChatContainer.html(chatContainer.html());
+                splitChatContainer.scrollTop(splitChatContainer[0].scrollHeight);
 
-                if (isExecutable) {
-                    // Cria um iframe para executar o código de forma isolada
-                    const iframe = $('<iframe>').attr('srcdoc', codeText).addClass('w-full h-full border-0');
-                    modalContent.html(iframe);
-                } else {
-                    // Para outros tipos de código, apenas exibe formatado
-                    const codeBlockClone = preElement.clone();
-                    modalContent.html(codeBlockClone);
-                }
-                
-                codeModal.removeClass('hidden').addClass('flex');
+                renderCodeView();
             });
 
-            // Fecha o modal
-            function closeModal() {
-                codeModal.addClass('hidden').removeClass('flex');
-                // Limpa o conteúdo para parar qualquer script em execução no iframe
-                modalContent.html('');
+            toggleViewBtn.on('click', function() {
+                isPreview = !isPreview;
+                renderCodeView();
+            });
+
+            function renderCodeView() {
+                codeViewContent.html('');
+                if (isPreview) {
+                    toggleViewBtn.text('View Code');
+                    const isExecutable = /^\s*<(?:!DOCTYPE|html|svg)/i.test(currentCode);
+                    if (isExecutable) {
+                        const iframe = $('<iframe>').attr('srcdoc', currentCode);
+                        codeViewContent.html(iframe);
+                    } else {
+                        codeViewContent.html('<p class="text-slate-500">No preview available for this code type.</p>');
+                    }
+                } else {
+                    toggleViewBtn.text('Preview');
+                    const codeBlock = $('<pre class="h-full"><code class="language-markup"></code></pre>');
+                    codeBlock.find('code').text(currentCode);
+                    codeViewContent.html(codeBlock);
+                }
             }
 
-            closeModalBtn.on('click', closeModal);
-            codeModal.on('click', function(e) {
-                // Fecha o modal se o clique for no overlay (fundo)
-                if (e.target === this) {
-                    closeModal();
-                }
+            closeSplitViewBtn.on('click', function() {
+                splitView.addClass('hidden').removeClass('flex');
+                mainContainer.removeClass('hidden');
+                currentCode = '';
+                isPreview = false;
             });
         });
     </script>
     
-    <!-- Estilo para o indicador de "digitando" -->
     <style>
         .typing-indicator span {
             display: inline-block;
